@@ -4,6 +4,7 @@ from dash import html
 from funcs import clean_currency
 import pandas as pd
 from dash.dependencies import Output, Input
+import plotly.graph_objects as go
 
 # Load original data
 df = pd.read_csv('data/transactions.csv')
@@ -29,6 +30,8 @@ app.title = "Bank Statement Analytics: Understand Your Personal Finances!"
 # Create new df with only category and amount columns
 cat_amount = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
 cat_amount = cat_amount.groupby(cat_amount['Category'])['Amount'].sum().to_frame().reset_index()
+
+print(cat_amount)
 
 app = dash.Dash(__name__)
 
