@@ -6,6 +6,7 @@ from dash import dcc
 from dash import html
 from funcs import clean_currency
 import pandas as pd
+from dash.dependencies import Output, Input
 
 # Load original data
 df = pd.read_csv('data/transactions.csv')
@@ -32,10 +33,6 @@ app.title = "Bank Statement Analytics: Understand Your Personal Finances!"
 cat_amount = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
 cat_amount = cat_amount.groupby(cat_amount['Category'])['Amount'].sum().to_frame().reset_index()
 
-# nLargest and nSmallest
-cat_amount_top_n = cat_amount.nlargest(5, 'Amount')  # Top N
-cat_amount_bottom_n = cat_amount.nsmallest(5, 'Amount')  # Bottom N
-
 app = dash.Dash(__name__)
 
 app.layout = html.Div(
@@ -57,11 +54,11 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
-                        html.Div(children="Top N Rankings", className="menu-title"),
+                        html.Div(children="Top-Ranked Expenses", className="menu-title"),
                         dcc.Dropdown(
                             id="top_n",
                             options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                            value=5,
+                            value=10,
                             clearable=False,
                             className="dropdown",
                         ),
@@ -69,11 +66,11 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     children=[
-                        html.Div(children="Bottom N Rankings", className="menu-title"),
+                        html.Div(children="Bottom-Ranked Expenses", className="menu-title"),
                         dcc.Dropdown(
-                            id="top_n",
+                            id="bottom_n",
                             options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                            value=5,
+                            value=10,
                             clearable=False,
                             className="dropdown",
                         ),
@@ -107,16 +104,96 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     children=dcc.Graph(
-                        id="bar-chart",
+                        id="bar-chart-1",
                         config={"displayModeBar": False},
                     ),
                     className="card",
                 ),
+                html.Div(
+                    children=dcc.Graph(
+                        id="bar-chart-2",
+                        config={"displayModeBar": False},
+                    ),
+                    className="card",
+                )
             ],
             className="wrapper",
         ),
     ]
 )
+
+@app.callback(
+    [Output("line-chart", "figure"), Output("bar-chart-1", "figure"), Output("bar-chart-2", "figure")],
+    [
+        Input("top_n", "value"),
+        Input("bottom_n", "value"),
+        Input("date-range", "start_date"),
+        Input("date-range", "end_date"),
+    ],
+)
+def update_charts(top_rankings, bottom_rankings, start_date, end_date):
+    # nLargest and nSmallest
+    cat_amount_top_n = cat_amount.sort_values('Amount', ascending=False).head(top_rankings)  # Top N
+    cat_amount_bottom_n = cat_amount.sort_values('Amount', ascending=True).head(bottom_rankings)  # Bottom N
+
+    mask = (
+        (df['Date'] >= start_date)
+        & (df['Date'] <= end_date)
+    )
+    dff = df.loc[mask, :]
+    line_chart_figure = {
+        "data": [
+            {
+                "x": dff["Date"],
+                "y": dff["Amount"],
+                "type": "lines",
+                "hover-template": "$%{y:.2f}<extra></extra>",
+            },
+        ],
+        "layout": {
+            "title": {
+                "text": "Transaction Time Series",
+                "x": 0.05,
+                "xanchor": "left",
+            },
+            "xaxis": {"fixedrange": True},
+            "yaxis": {"tickprefix": "$", "fixedrange": True},
+            "colorway": ["#17B897"],
+        },
+    }
+
+    bar_chart_figure_1 = {
+        "data": [
+            {
+                "x": cat_amount_top_n["Category"],
+                "y": cat_amount_top_n["Amount"],
+                "type": "bar",
+            },
+        ],
+        "layout": {
+            "title": {"text": "Top Expense Categories", "x": 0.05, "xanchor": "left"},
+            "xaxis": {"fixedrange": True},
+            "yaxis": {"fixedrange": True},
+            "colorway": ["#17B897"],
+        },
+    }
+    bar_chart_figure_2 = {
+        "data": [
+            {
+                "x": cat_amount_bottom_n["Category"],
+                "y": cat_amount_bottom_n["Amount"],
+                "type": "bar",
+            },
+        ],
+        "layout": {
+            "title": {"text": "Bottom Expense Categories", "x": 0.05, "xanchor": "left"},
+            "xaxis": {"fixedrange": True},
+            "yaxis": {"fixedrange": True},
+            "colorway": ["#17B897"],
+        },
+    }
+    return line_chart_figure, bar_chart_figure_1, bar_chart_figure_2
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
