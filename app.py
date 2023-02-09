@@ -1,6 +1,3 @@
-from tabulate import tabulate
-from IPython.display import display
-import numpy as np
 import dash
 from dash import dcc
 from dash import html
@@ -122,6 +119,7 @@ app.layout = html.Div(
     ]
 )
 
+
 @app.callback(
     [Output("line-chart", "figure"), Output("bar-chart-1", "figure"), Output("bar-chart-2", "figure")],
     [
@@ -157,7 +155,7 @@ def update_charts(top_rankings, bottom_rankings, start_date, end_date):
                 "xanchor": "left",
             },
             "xaxis": {"fixedrange": True},
-            "yaxis": {"tickprefix": "$", "fixedrange": True},
+            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
             "colorway": ["#17B897"],
         },
     }
@@ -173,7 +171,7 @@ def update_charts(top_rankings, bottom_rankings, start_date, end_date):
         "layout": {
             "title": {"text": "Top Expense Categories", "x": 0.05, "xanchor": "left"},
             "xaxis": {"fixedrange": True},
-            "yaxis": {"fixedrange": True},
+            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
             "colorway": ["#17B897"],
         },
     }
@@ -188,7 +186,7 @@ def update_charts(top_rankings, bottom_rankings, start_date, end_date):
         "layout": {
             "title": {"text": "Bottom Expense Categories", "x": 0.05, "xanchor": "left"},
             "xaxis": {"fixedrange": True},
-            "yaxis": {"fixedrange": True},
+            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
             "colorway": ["#17B897"],
         },
     }
