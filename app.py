@@ -170,7 +170,7 @@ def update_charts(top_rankings, bottom_rankings, start_date, end_date):
         ],
         "layout": {
             "title": {"text": "Top Expense Categories", "x": 0.05, "xanchor": "left"},
-            "xaxis": {"fixedrange": True},
+            "xaxis": {"title": "Category", "fixedrange": True},
             "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
             "colorway": ["#17B897"],
         },
@@ -185,7 +185,7 @@ def update_charts(top_rankings, bottom_rankings, start_date, end_date):
         ],
         "layout": {
             "title": {"text": "Bottom Expense Categories", "x": 0.05, "xanchor": "left"},
-            "xaxis": {"fixedrange": True},
+            "xaxis": {"title": "Category", "fixedrange": True},
             "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
             "colorway": ["#17B897"],
         },
