@@ -11,21 +11,21 @@ from funcs import clean_currency
 import pandas as pd
 
 # Load original data
-data = pd.read_csv('data/transactions.csv', index_col=False)
-df = pd.DataFrame(data)
+df = pd.read_csv('data/transactions.csv')
 
 # Cleaning original data
-df = df.loc[:, ~df.columns.str.contains('^Unnamed')] # Removes Unnamed columns
+df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
 df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
 
 # Create new df with only category and amount columns
-cat_amount = df.drop(columns=["Date", "Description", "Address", "City/State", "Zip Code", "Country",]) # Remove cols
-cat_amount = cat_amount.groupby(cat_amount['Category'])['Amount'].sum().reset_index()
-cat_amount_top_n = cat_amount.sort_values('Amount',ascending = False).head(4) # Top N
+cat_amount = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
+cat_amount = cat_amount.groupby(cat_amount['Category'])['Amount'].sum().to_frame().reset_index()
 
-sns.barplot(data = cat_amount_top_n, x = 'Category', y = 'Amount', palette = 'deep')
-plt.show();
+# nLargest and nSmallest
+cat_amount_top_n = cat_amount.nlargest(5, 'Amount')  # Top N
+cat_amount_bottom_n = cat_amount.nsmallest(5, 'Amount')  # Bottom N
 
 print(cat_amount_top_n)
-# print(cat_amount_top_n)
+print("-----")
+print(cat_amount_bottom_n)
 
