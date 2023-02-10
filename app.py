@@ -52,6 +52,32 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
+                html.Div(children="", className="menu-title"),
+                                dcc.Upload(
+                                    id='upload-data',
+                                    children=html.Div([
+                                        'Upload .csv or .xlsx files'
+                                    ]),
+                                    style={
+                                        'width': '15%',
+                                        'height': '60px',
+                                        'lineHeight': '60px',
+                                        'borderWidth': '1px',
+                                        'borderStyle': 'dashed',
+                                        'borderRadius': '5px',
+                                        'textAlign': 'center',
+                                        'margin': '-140px auto 40px auto',
+                                        'background-color': '#FFFFFF'
+                                    },
+                                    # Allow multiple files to be uploaded
+                                    multiple=True
+                                ),
+                                html.Div(id='output-data-upload'),
+            ],
+            className="upload",
+        ),
+        html.Div(
+            children=[
                 html.Div(
                     children=[
                         html.Div(children="Top-Ranked Expenses", className="menu-title"),
