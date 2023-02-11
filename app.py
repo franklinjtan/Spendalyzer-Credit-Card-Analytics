@@ -91,7 +91,7 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
-                # INPUT DROP DOWN FOR TOP RANKED EXPENSES
+                # INPUT DROP DOWN FOR TOP-RANKED EXPENSES
                 html.Div(
                     children=[
                         html.Div(children="Top-Ranked Expenses", className="menu-title"),
@@ -104,7 +104,7 @@ app.layout = html.Div(
                         ),
                     ]
                 ),
-                # INPUT DROP DOWN FOR BOTTOM RANKED EXPENSES
+                # INPUT DROP DOWN FOR BOTTOM-RANKED EXPENSES
                 html.Div(
                     children=[
                         html.Div(children="Bottom-Ranked Expenses", className="menu-title"),
@@ -145,7 +145,7 @@ app.layout = html.Div(
                     ),
                     className="card",
                 ),
-                # TOP RANKED EXPENSES BAR CHART
+                # TOP-RANKED EXPENSES BAR CHART
                 html.Div(
                     children=dcc.Graph(
                         id="bar-chart-1",
@@ -153,7 +153,7 @@ app.layout = html.Div(
                     ),
                     className="card",
                 ),
-                # BOTTOM RANKED EXPENSES BAR CHART
+                # BOTTOM-RANKED EXPENSES BAR CHART
                 html.Div(
                     children=dcc.Graph(
                         id="bar-chart-2",
