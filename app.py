@@ -112,7 +112,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot']),
+                                     options=['All', 'Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot']),
                     ]
                 ),
                 # INPUT DROP DOWN FOR RANKED EXPENSES
@@ -189,13 +189,12 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
 
         if analysis_type == 'Time Series':
-            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="Purchase History")
+            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="What does a time series of my expenses look like?")
             time_fig1.update_traces(line_color='#17B897')
 
             scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="Expenses Time Series")
+            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="What does a plot of my transactions by category look like?")
             scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-            # scatter_fig2.update_layout(plot_bgcolor="#808080") symbol="Category", trendline="ols",
 
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
 
@@ -205,12 +204,20 @@ def make_graphs(n, data, analysis_type, ranked):
             cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
-            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount')
+            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category', title="What are your top rankings?")
 
             # BOTTOM RANKINGS
             cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
-            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount')
-            return dcc.Graph(figure=bar_fig1), dcc.Graph(figure=bar_fig2)
+            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category', title="What are your bottom rankings?")
+
+            # Transform x variable to group by day of the week
+            days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            df['Day_of_Week'] = df['Date'].dt.day_name()
+            df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
+            bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
+            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount',  color='Day_of_Week', title="What are your total transactions by day?")
+
+            return dcc.Graph(figure=bar_fig1), dcc.Graph(figure=bar_fig2), dcc.Graph(figure=bar_fig3)
 
         elif analysis_type == 'Pie Chart':
             pie_df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
@@ -223,15 +230,64 @@ def make_graphs(n, data, analysis_type, ranked):
             colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
 
             pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
-                               color_discrete_map=colors, title='Expense Breakdown')
+                               color_discrete_map=colors, title='What does my expense breakdown by necessities and non-essentials look like?')
 
             return dcc.Graph(figure=pie_fig_1)
 
         elif analysis_type == 'Box Plot':
-            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers", title='Detecting Outliers '
-                                                                                                  'with Box Plots')
-            box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
+            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
+                              title='What outlier transactions can we detect?')
+            box_plot.update_traces(quartilemethod="exclusive")
             return dcc.Graph(figure=box_plot)
+
+        elif analysis_type == 'All':
+            # TIME SERIES
+            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="What does a time series of my expenses look like?")
+            time_fig1.update_traces(line_color='#17B897')
+
+            scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
+            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="What does a plot of my transactions by category look like?")
+            scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
+
+            # BAR CHART
+            cat_vs_amount_df1 = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
+            cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
+                'Amount'].sum().to_frame().reset_index()
+            cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
+            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category', title="What are your top rankings?")
+
+            # BOTTOM RANKINGS
+            cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
+            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category', title="What are your bottom rankings?")
+
+            # Transform x variable to group by day of the week
+            days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            df['Day_of_Week'] = df['Date'].dt.day_name()
+            df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
+            bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
+            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount', color='Day_of_Week',
+                              title="What are your total transactions by day?")
+
+            # PIE CHART
+            pie_df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
+            pie_df['Type'] = np.where(df['Category'].isin(
+                ['Car Insurance', 'Car Loan', 'Car Maintenance', 'Electric Bill', 'Gas', 'Gas Bill', 'Groceries',
+                 'Health Care', 'Housing', 'Internet Bill']), True, False)
+
+            pie_df['Type'] = pie_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
+            pie_df = pie_df.groupby(pie_df['Type'])['Amount'].sum().to_frame().reset_index()
+            colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
+
+            pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
+                               color_discrete_map=colors, title='What does my expense breakdown by necessities and non-essentials look like?')
+
+            # BOX PLOT
+            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
+                              title='What outlier transactions can we detect?')
+            box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
+
+            return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
+                figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(figure=box_plot)
 
 
 if __name__ == '__main__':
