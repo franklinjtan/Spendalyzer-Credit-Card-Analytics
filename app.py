@@ -71,6 +71,16 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
         ],
         className="upload",
     ),
+    # html.Div(
+    #     children=[
+    #         html.Div(html.H1(
+    #             children="FRANKLIN TAN", className="card"
+    #             )
+    #         ),
+    #         html.P(children="CORNELL UNIVERSITY", className="card"),
+    #     ],
+    #     className="wrapper",
+    # ),
     html.Div(
         children=[
             # OUTPUT
@@ -198,9 +208,12 @@ def make_graphs(n, data, analysis_type, ranked):
             time_fig1.update_traces(line_color='#17B897')
 
             scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
+            scatter_2df['Year'] = pd.DatetimeIndex(scatter_2df['Date']).year
             scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
                                       title="What does a plot of my transactions by category look like?")
             scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
+
+            print(scatter_2df)
 
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
 
@@ -211,12 +224,12 @@ def make_graphs(n, data, analysis_type, ranked):
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
             bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
-                              title="What are your top rankings?")
+                              title="What are your top " + str(ranked) + " rankings?")
 
             # BOTTOM RANKINGS
             cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
             bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
-                              title="What are your bottom rankings?")
+                              title="What are your bottom " + str(ranked) + " rankings?")
 
             # Transform x variable to group by day of the week
             days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -320,12 +333,12 @@ def make_graphs(n, data, analysis_type, ranked):
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
             bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
-                              title="What are your top rankings?")
+                              title="What are your top " + str(ranked) + " rankings?")
 
             # BOTTOM RANKINGS
             cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
             bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
-                              title="What are your bottom rankings?")
+                              title="What are your top " + str(ranked) + " rankings?")
 
             # Transform x variable to group by day of the week
             days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -354,8 +367,60 @@ def make_graphs(n, data, analysis_type, ranked):
                               hover_name="Date", title='What outlier transactions can we detect?')
             box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
 
+            # GEO-LOCATION
+            nomi = pgeocode.Nominatim('us')  # Interpret zipcodes as US
+            df['Latitude'] = nomi.query_postal_code(
+                df['Zip Code'].tolist()).latitude  # Create column that loads in the latitude based on Zip Code
+            df['Longitude'] = nomi.query_postal_code(
+                df['Zip Code'].tolist()).longitude  # Create column that loads in the longitude based on Zip Code
+
+            map_fig = go.Figure(data=go.Scattergeo(
+                lon=df['Longitude'],
+                lat=df['Latitude'],
+                text=df['City/State'],
+                mode='markers',
+                marker_color=df['Amount'],
+                marker=dict(
+                    size=4,
+                    opacity=0.8,
+                    reversescale=True,
+                    autocolorscale=False,
+                    symbol='square',
+                    line=dict(
+                        width=4,
+                        color='#B31942'
+                    ),
+                ))
+            )
+            map_fig.update_layout(
+                geo=dict(
+                    showland=True,
+                    landcolor="#0A3161",
+                    subunitcolor="rgb(255, 255, 255)",
+                    showsubunits=True,
+                    resolution=50,
+                    lonaxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[-140.0, -55.0],
+                        dtick=5
+                    ),
+                    lataxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[20.0, 60.0],
+                        dtick=5
+                    )
+                ),
+                title='Where are your purchases?',
+                geo_scope='usa',
+                width=1400,
+                height=600,
+            )
+
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
-                figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(figure=box_plot)
+                figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(
+                figure=box_plot), dcc.Graph(figure=map_fig)
 
 
 if __name__ == '__main__':
