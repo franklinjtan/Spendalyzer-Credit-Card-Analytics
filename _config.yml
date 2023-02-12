@@ -1,0 +1,4 @@
+title: Bank Statenebt Analytics
+description: An interactive web application that allows users to upload their bank statements, receive an analysis of their purchase history, and consequently understand their purchasing behavior.
+show_downloads: false
+theme: jekyll-theme-minimal
