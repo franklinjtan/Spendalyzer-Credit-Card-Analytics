@@ -1,18 +1,17 @@
-import dash
+import base64
+import datetime
+import io
+
+import plotly.graph_objects as go
+
 from funcs import clean_currency
-import pandas as pd
-import numpy as np
-from dash import dcc, html
+import dash
+from dash.dependencies import Input, Output, State
+from dash import dcc, html, dash_table
 import plotly.express as px
-from dash.dependencies import Output, Input
 
-# Load original data
-df = pd.read_csv('data/transactions.csv')
-
-# Cleaning original data
-df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
-df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
-df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
+import numpy as np
+import pandas as pd
 
 external_stylesheets = [
     {
@@ -21,82 +20,107 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
 ]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets,
+                suppress_callback_exceptions=True)
 server = app.server
 app.title = "Bank Statement Analytics: Understand Your Personal Finances!"
 
-# Create new df with only category and amount columns
-cat_amount = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
-cat_amount = cat_amount.groupby(cat_amount['Category'])['Amount'].sum().to_frame().reset_index()
+app.layout = html.Div([  # this code section taken from Dash docs https://dash.plotly.com/dash-core-components/upload
+    html.Div(
+        children=[
+            html.P(children="🏦", className="header-emoji"),
+            html.H1(
+                children="Bank Statement Analytics", className="header-title"
+            ),
+            html.P(
+                children="Analyze purchase history and behavior",
+                className="header-description",
+            ),
+        ],
+        className="header",
+    ),
+    html.Div(
+        children=[
+            html.Div(children="", className="menu-title"),
+            dcc.Upload(
+                id='upload-data',
+                children=html.Div([
+                    'Upload .csv file'
+                ]),
+                style={
+                    'width': '10%',
+                    'height': '10%',
+                    'display': 'flex',
+                    'lineHeight': '60px',
+                    'justify-content': 'space-evenly',
+                    'borderWidth': '1px',
+                    'borderStyle': 'dashed',
+                    'borderRadius': '5px',
+                    'textAlign': 'center',
+                    'margin': '-140px auto 40px auto',
+                    'background-color': '#FFFFFF'
+                },
+                # Allow multiple files to be uploaded
+                multiple=True
+            ),
+            html.Div(id='output-data-upload'),
+        ],
+        className="upload",
+    ),
+    html.Div(
+        children=[
+            # OUTPUT
+            html.Div(
+                id='output-datatable',
+                className="card",
+            ),
+            html.Div(
+                id='output-div',
+                className="card",
+            ),
+        ],
+        className="wrapper",
+    ),
+])
 
-# Create new df with only two tags:
-new_df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
-new_df['Type'] = np.where(df['Category'].isin(
-    ['Car Insurance', 'Car Loan', 'Car Maintenance', 'Electric Bill', 'Gas', 'Gas Bill', 'Groceries',
-     'Health Care', 'Housing', 'Internet Bill']), True, False)
 
-new_df['Type'] = new_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
+def parse_contents(contents, filename, date):
+    content_type, content_string = contents.split(',')
 
-new_df = new_df.groupby(new_df['Type'])['Amount'].sum().to_frame().reset_index()
+    decoded = base64.b64decode(content_string)
+    try:
+        if 'csv' in filename:
+            # Assume that the user uploaded a CSV file
+            df = pd.read_csv(
+                io.StringIO(decoded.decode('utf-8')))
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
+        elif 'xls' in filename:
+            # Assume that the user uploaded an Excel file
+            df = pd.read_excel(io.BytesIO(decoded))
+    except Exception as e:
+        print(e)
+        return html.Div([
+            'There was an error processing this file.'
+        ])
 
-colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
-
-fig = px.pie(new_df, values='Amount', names='Type', color='Type',
-             color_discrete_map=colors, title='Expense Breakdown')
-
-app = dash.Dash(__name__)
-
-app.layout = html.Div(
-    children=[
-        # HEADER INFORMATION
+    return html.Div([
         html.Div(
             children=[
-                html.P(children="🏦", className="header-emoji"),
-                html.H1(
-                    children="Bank Statement Analytics", className="header-title"
-                ),
-                html.P(
-                    children="Analyze purchase history and behavior",
-                    className="header-description",
-                ),
-            ],
-            className="header",
-        ),
-        # UPLOAD .CSV OR .XLSX FILE
-        html.Div(
-            children=[
-                html.Div(children="", className="menu-title"),
-                dcc.Upload(
-                    id='upload-data',
-                    children=html.Div([
-                        'Upload .csv or .xlsx files'
-                    ]),
-                    style={
-                        'width': '15%',
-                        'height': '60px',
-                        'lineHeight': '60px',
-                        'borderWidth': '1px',
-                        'borderStyle': 'dashed',
-                        'borderRadius': '5px',
-                        'textAlign': 'center',
-                        'margin': '-140px auto 40px auto',
-                        'background-color': '#FFFFFF'
-                    },
-                    # Allow multiple files to be uploaded
-                    multiple=True
-                ),
-                html.Div(id='output-data-upload'),
-            ],
-            className="upload",
-        ),
-        html.Div(
-            children=[
-                # INPUT DROP DOWN FOR TOP-RANKED EXPENSES
+                # INPUT TYPE OF ANALYSIS
                 html.Div(
                     children=[
-                        html.Div(children="Top-Ranked Expenses", className="menu-title"),
+                        html.Div(children="Type of Analysis Performed", className="menu-title"),
+                        dcc.Dropdown(id='analysis-type',
+                                     options=['Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot']),
+                    ]
+                ),
+                # INPUT DROP DOWN FOR RANKED EXPENSES
+                html.Div(
+                    children=[
+                        html.Div(children="Ranked Expenses", className="menu-title"),
                         dcc.Dropdown(
-                            id="top_n",
+                            id="ranked",
                             options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                             value=10,
                             clearable=False,
@@ -104,154 +128,111 @@ app.layout = html.Div(
                         ),
                     ]
                 ),
-                # INPUT DROP DOWN FOR BOTTOM-RANKED EXPENSES
                 html.Div(
                     children=[
-                        html.Div(children="Bottom-Ranked Expenses", className="menu-title"),
-                        dcc.Dropdown(
-                            id="bottom_n",
-                            options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                            value=10,
-                            clearable=False,
-                            className="dropdown",
-                        ),
+                        html.Button(id="submit-button",
+                                    children="Create Graph",
+                                    style={"min-width": "150px",
+                                           "font-weight": "bold",
+                                           "color": "#079A82",
+                                           "height": "50px",
+                                           "margin-top": "5px",
+                                           "margin-left": "5px"}),
                     ],
-                ),
-                # INPUT DATE RANGE
-                html.Div(
-                    children=[
-                        html.Div(
-                            children="Date Range", className="menu-title"
-                        ),
-                        dcc.DatePickerRange(
-                            id="date-range",
-                            min_date_allowed=df.Date.min().date(),
-                            max_date_allowed=df.Date.max().date(),
-                            start_date=df.Date.min().date(),
-                            end_date=df.Date.max().date(),
-                        ),
-                    ]
                 ),
             ],
             className="menu",
         ),
+
         html.Div(
             children=[
-                # TIME SERIES CHART
-                html.Div(
-                    children=dcc.Graph(
-                        id="line-chart",
-                        config={"displayModeBar": False},
-                    ),
-                    className="card",
+                html.H4("File: " + filename),
+
+                dash_table.DataTable(
+                    data=df.to_dict('records'),
+                    columns=[{'name': i, 'id': i} for i in df.columns],
+                    page_size=5
                 ),
-                # TOP-RANKED EXPENSES BAR CHART
-                html.Div(
-                    children=dcc.Graph(
-                        id="bar-chart-1",
-                        config={"displayModeBar": False},
-                    ),
-                    className="card",
-                ),
-                # BOTTOM-RANKED EXPENSES BAR CHART
-                html.Div(
-                    children=dcc.Graph(
-                        id="bar-chart-2",
-                        config={"displayModeBar": False},
-                    ),
-                    className="card",
-                ),
-                # EXPENSE BREAKDOWN PIE CHART
-                html.Div(
-                    children=[
-                        html.Div(children="", className="menu-title"),
-                        dcc.Graph(
-                            id='pie-chart',
-                            figure=fig,
-                            className="card",
-                        ),
-                    ],
-                )
+                dcc.Store(id='stored-data', data=df.to_dict('records')),
+
             ],
             className="wrapper",
         ),
-    ]
-)
+    ])
 
 
-@app.callback(
-    [Output("line-chart", "figure"), Output("bar-chart-1", "figure"), Output("bar-chart-2", "figure")],
-    [
-
-        Input("top_n", "value"),
-        Input("bottom_n", "value"),
-        Input("date-range", "start_date"),
-        Input("date-range", "end_date"),
-    ],
-)
-def update_charts(top_rankings, bottom_rankings, start_date, end_date):
-    # nLargest and nSmallest
-    cat_amount_top_n = cat_amount.sort_values('Amount', ascending=False).head(top_rankings)  # Top N
-    cat_amount_bottom_n = cat_amount.sort_values('Amount', ascending=True).head(bottom_rankings)  # Bottom N
-
-    mask = (
-            (df['Date'] >= start_date)
-            & (df['Date'] <= end_date)
-    )
-    dff = df.loc[mask, :]
-    line_chart_figure = {
-        "data": [
-            {
-                "x": dff["Date"],
-                "y": dff["Amount"],
-                "type": "lines",
-                "hover-template": "$%{y:.2f}<extra></extra>",
-            },
-        ],
-        "layout": {
-            "title": {
-                "text": "Transaction Time Series",
-                "x": 0.05,
-                "xanchor": "left",
-            },
-            "xaxis": {"fixedrange": True},
-            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
-            "colorway": ["#17B897"],
-        },
-    }
-
-    bar_chart_figure_1 = {
-        "data": [
-            {
-                "x": cat_amount_top_n["Category"],
-                "y": cat_amount_top_n["Amount"],
-                "type": "bar",
-            },
-        ],
-        "layout": {
-            "title": {"text": "Top Expense Categories", "x": 0.05, "xanchor": "left"},
-            "xaxis": {"title": "Category", "fixedrange": True},
-            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
-            "colorway": ["#17B897"],
-        },
-    }
-    bar_chart_figure_2 = {
-        "data": [
-            {
-                "x": cat_amount_bottom_n["Category"],
-                "y": cat_amount_bottom_n["Amount"],
-                "type": "bar",
-            },
-        ],
-        "layout": {
-            "title": {"text": "Bottom Expense Categories", "x": 0.05, "xanchor": "left"},
-            "xaxis": {"title": "Category", "fixedrange": True},
-            "yaxis": {"tickprefix": "$", "fixedrange": True, "gridcolor": '#afafae'},
-            "colorway": ["#17B897"],
-        },
-    }
-    return line_chart_figure, bar_chart_figure_1, bar_chart_figure_2
+@app.callback(Output('output-datatable', 'children'),
+              Input('upload-data', 'contents'),
+              State('upload-data', 'filename'),
+              State('upload-data', 'last_modified'))
+def update_output(list_of_contents, list_of_names, list_of_dates):
+    if list_of_contents is not None:
+        children = [
+            parse_contents(c, n, d) for c, n, d in
+            zip(list_of_contents, list_of_names, list_of_dates)]
+        return children
 
 
-if __name__ == "__main__":
+@app.callback(Output('output-div', 'children'),
+              Input('submit-button', 'n_clicks'),
+              State('stored-data', 'data'),
+              State('analysis-type', 'value'),
+              State('ranked', 'value'),
+              )
+def make_graphs(n, data, analysis_type, ranked):
+    if n is None:
+        return dash.no_update
+    else:
+        df = pd.DataFrame(data)
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
+        df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
+        df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
+
+        if analysis_type == 'Time Series':
+            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="Purchase History")
+            time_fig1.update_traces(line_color='#17B897')
+
+            scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
+            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="Expenses Time Series")
+            scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
+            # scatter_fig2.update_layout(plot_bgcolor="#808080") symbol="Category", trendline="ols",
+
+            return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
+
+        elif analysis_type == 'Bar Chart':
+            # TOP RANKINGS
+            cat_vs_amount_df1 = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
+            cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
+                'Amount'].sum().to_frame().reset_index()
+            cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
+            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount')
+
+            # BOTTOM RANKINGS
+            cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
+            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount')
+            return dcc.Graph(figure=bar_fig1), dcc.Graph(figure=bar_fig2)
+
+        elif analysis_type == 'Pie Chart':
+            pie_df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
+            pie_df['Type'] = np.where(df['Category'].isin(
+                ['Car Insurance', 'Car Loan', 'Car Maintenance', 'Electric Bill', 'Gas', 'Gas Bill', 'Groceries',
+                 'Health Care', 'Housing', 'Internet Bill']), True, False)
+
+            pie_df['Type'] = pie_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
+            pie_df = pie_df.groupby(pie_df['Type'])['Amount'].sum().to_frame().reset_index()
+            colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
+
+            pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
+                               color_discrete_map=colors, title='Expense Breakdown')
+
+            return dcc.Graph(figure=pie_fig_1)
+
+        elif analysis_type == 'Box Plot':
+            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers", title='Detecting Outliers '
+                                                                                                  'with Box Plots')
+            box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
+            return dcc.Graph(figure=box_plot)
+
+
+if __name__ == '__main__':
     app.run_server(debug=True)

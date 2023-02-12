@@ -34,14 +34,14 @@ body {
 .wrapper {
     margin-right: auto;
     margin-left: auto;
-    max-width: 1024px;
+    max-width: 1400px;
     padding-right: 10px;
     padding-left: 10px;
-    margin-top: 32px;
+    margin-top: 16px;
 }
 
 .card {
-    margin-bottom: 24px;
+    margin: 24px auto;
     padding-bottom: 24px;
     box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.18);
 }
@@ -56,16 +56,6 @@ body {
     background-color: #FFFFFF;
     box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.18);
 }
-/*.upload {*/
-/*    height: 66px;*/
-/*    width: 456px;*/
-/*    display: flex;*/
-/*    justify-content: space-evenly;*/
-/*    padding-top: 24px;*/
-/*    margin: -80px auto 0 auto;*/
-/*    background-color: #FFFFFF;*/
-/*    box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.18);*/
-/*}*/
 
 .Select-control {
     width: 256px;
