@@ -3,6 +3,9 @@ import datetime
 import io
 
 import plotly.graph_objects as go
+import pgeocode
+import geopandas as gpd
+from geopandas import GeoDataFrame
 
 from funcs import clean_currency
 import dash
@@ -112,7 +115,8 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot']),
+                                     options=['All', 'Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot',
+                                              'Geo-Location']),
                     ]
                 ),
                 # INPUT DROP DOWN FOR RANKED EXPENSES
@@ -189,11 +193,13 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
 
         if analysis_type == 'Time Series':
-            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="What does a time series of my expenses look like?")
+            time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
+                                hover_name="Category", title="What does a time series of my expenses look like?")
             time_fig1.update_traces(line_color='#17B897')
 
             scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="What does a plot of my transactions by category look like?")
+            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
+                                      title="What does a plot of my transactions by category look like?")
             scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
 
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
@@ -204,18 +210,21 @@ def make_graphs(n, data, analysis_type, ranked):
             cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
-            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category', title="What are your top rankings?")
+            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
+                              title="What are your top rankings?")
 
             # BOTTOM RANKINGS
             cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
-            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category', title="What are your bottom rankings?")
+            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
+                              title="What are your bottom rankings?")
 
             # Transform x variable to group by day of the week
             days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
             df['Day_of_Week'] = df['Date'].dt.day_name()
             df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
             bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
-            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount',  color='Day_of_Week', title="What are your total transactions by day?")
+            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount', color='Day_of_Week',
+                              title="What are your total transactions by day?")
 
             return dcc.Graph(figure=bar_fig1), dcc.Graph(figure=bar_fig2), dcc.Graph(figure=bar_fig3)
 
@@ -230,23 +239,79 @@ def make_graphs(n, data, analysis_type, ranked):
             colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
 
             pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
-                               color_discrete_map=colors, title='What does my expense breakdown by necessities and non-essentials look like?')
+                               color_discrete_map=colors,
+                               title='What does my expense breakdown by necessities and non-essentials look like?')
 
             return dcc.Graph(figure=pie_fig_1)
 
         elif analysis_type == 'Box Plot':
             box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
-                              title='What outlier transactions can we detect?')
+                              hover_name="Date", title='What outlier transactions can we detect?')
             box_plot.update_traces(quartilemethod="exclusive")
             return dcc.Graph(figure=box_plot)
 
+        elif analysis_type == 'Geo-Location':
+            nomi = pgeocode.Nominatim('us')  # Interpret zipcodes as US
+            df['Latitude'] = nomi.query_postal_code(
+                df['Zip Code'].tolist()).latitude  # Create column that loads in the latitude based on Zip Code
+            df['Longitude'] = nomi.query_postal_code(
+                df['Zip Code'].tolist()).longitude  # Create column that loads in the longitude based on Zip Code
+
+            map_fig = go.Figure(data=go.Scattergeo(
+                lon=df['Longitude'],
+                lat=df['Latitude'],
+                text=df['City/State'],
+                mode='markers',
+                marker_color=df['Amount'],
+                marker=dict(
+                    size=4,
+                    opacity=0.8,
+                    reversescale=True,
+                    autocolorscale=False,
+                    symbol='square',
+                    line=dict(
+                        width=4,
+                        color='#B31942'
+                    ),
+                ))
+            )
+            map_fig.update_layout(
+                geo=dict(
+                    showland=True,
+                    landcolor="#0A3161",
+                    subunitcolor="rgb(255, 255, 255)",
+                    showsubunits=True,
+                    resolution=50,
+                    lonaxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[-140.0, -55.0],
+                        dtick=5
+                    ),
+                    lataxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[20.0, 60.0],
+                        dtick=5
+                    )
+                ),
+                title='Where are your purchases?',
+                geo_scope='usa',
+                width=1400,
+                height=600,
+            )
+            return dcc.Graph(figure=map_fig)
+
         elif analysis_type == 'All':
             # TIME SERIES
-            time_fig1 = px.line(df, 'Date', 'Amount', markers=True, title="What does a time series of my expenses look like?")
+            time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
+                                hover_name="Category", title="What does a time series of my expenses look like?")
             time_fig1.update_traces(line_color='#17B897')
 
+            # SCATTER PLOT
             scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category', title="What does a plot of my transactions by category look like?")
+            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
+                                      title="What does a plot of my transactions by category look like?")
             scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
 
             # BAR CHART
@@ -254,11 +319,13 @@ def make_graphs(n, data, analysis_type, ranked):
             cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
-            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category', title="What are your top rankings?")
+            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
+                              title="What are your top rankings?")
 
             # BOTTOM RANKINGS
             cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
-            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category', title="What are your bottom rankings?")
+            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
+                              title="What are your bottom rankings?")
 
             # Transform x variable to group by day of the week
             days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -279,11 +346,12 @@ def make_graphs(n, data, analysis_type, ranked):
             colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
 
             pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
-                               color_discrete_map=colors, title='What does my expense breakdown by necessities and non-essentials look like?')
+                               color_discrete_map=colors,
+                               title='What does my expense breakdown by necessities and non-essentials look like?')
 
             # BOX PLOT
             box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
-                              title='What outlier transactions can we detect?')
+                              hover_name="Date", title='What outlier transactions can we detect?')
             box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
 
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
