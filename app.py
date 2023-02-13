@@ -99,7 +99,6 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
 
 
 def parse_contents(contents, filename, date):
-    df = []
     content_type, content_string = contents.split(',')
 
     decoded = base64.b64decode(content_string)
