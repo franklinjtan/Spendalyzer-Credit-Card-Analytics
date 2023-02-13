@@ -19,7 +19,7 @@ import pandas as pd
 external_stylesheets = [
     {
         "href": "https://fonts.googleapis.com/css2?"
-                "family=Lato:wght@400;700&display=swap",
+                "family= Lato:wght@400;700&display=swap",
         "rel": "stylesheet",
     },
 ]
@@ -99,18 +99,21 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
 
 
 def parse_contents(contents, filename, date):
+    df = []
     content_type, content_string = contents.split(',')
 
     decoded = base64.b64decode(content_string)
     try:
-        if 'csv' in filename:
+        if 'csv' or 'CSV' in filename:
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')))
+
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
-        elif 'xls' in filename:
+        elif 'xls' or 'xlsx' in filename:
             # Assume that the user uploaded an Excel file
             df = pd.read_excel(io.BytesIO(decoded))
+
     except Exception as e:
         print(e)
         return html.Div([
@@ -200,7 +203,7 @@ def make_graphs(n, data, analysis_type, ranked):
         df = pd.DataFrame(data)
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
         df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
-        df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
+        df['Date'] = pd.to_datetime(df['Date'])
 
         if analysis_type == 'Time Series':
             time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
@@ -219,7 +222,7 @@ def make_graphs(n, data, analysis_type, ranked):
 
         elif analysis_type == 'Bar Chart':
             # TOP RANKINGS
-            cat_vs_amount_df1 = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
+            cat_vs_amount_df1 = pd.DataFrame().assign(Category=df['Category'], Amount = df['Amount'])#(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
             cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
