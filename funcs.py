@@ -213,7 +213,6 @@ def create_forecast_recommendations_flagged(df):
             )
         ]
     )
-    print(message)
 
     return dcc.Graph(figure=flagged_fig)
 def create_time_series(df):
