@@ -118,10 +118,12 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot',
+                                     options=['All', 'Forecast Recommendations', 'Time Series', 'Bar Chart',
+                                              'Pie Chart', 'Box Plot',
                                               'Geo-Location']),
                     ]
                 ),
+
                 # INPUT DROP DOWN FOR RANKED EXPENSES
                 html.Div(
                     children=[
@@ -184,7 +186,7 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
               Input('submit-button', 'n_clicks'),
               State('stored-data', 'data'),
               State('analysis-type', 'value'),
-              State('ranked', 'value'),
+              State('ranked', 'value')
               )
 def make_graphs(n, data, analysis_type, ranked):
     if n is None:
@@ -195,7 +197,84 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
         df['Date'] = pd.to_datetime(df['Date'])
 
-        if analysis_type == 'Time Series':
+        if analysis_type == 'Forecast Recommendations':
+            df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country"])
+
+            avg_df = df.groupby(['Category'])['Amount'].mean().to_frame().reset_index()
+            avg_df = avg_df.rename(columns={'Amount': 'Average'})
+
+            # creating new dataframes for sma and es forecasts
+            sma_df = df
+            exp_smooth_df = df
+
+            # simple moving average forecast of each category
+            sma_df = df.groupby(['Category'])['Amount'].rolling(window=4).mean().to_frame().reset_index()
+            sma_df.columns = ['Category', 'level_1', 'SMA']
+
+            most_recent_sma_df = sma_df.groupby('Category').tail(1)
+
+            forecasts = pd.merge(most_recent_sma_df, avg_df, on="Category", how="left")
+            forecasts = forecasts.reindex(columns=['Category', 'level_1', 'Average', 'SMA'])
+
+            # exponential smoothing forecast of each category
+
+            # define alpha value
+            alpha = 0.2
+
+            # group transactions by category
+            grouped = exp_smooth_df.groupby('Category')
+
+            # create a new empty column for the exponential smoothed amounts
+
+            # iterate through each group
+            for group_name, group_data in grouped:
+                # get the indices for the current group
+                group_indices = group_data.index
+
+                # perform exponential smoothing on the amount column for the current group
+                smoothed = group_data['Amount'].ewm(alpha=alpha).mean()
+
+                # update the smoothed amounts for the current group in the main dataframe
+                exp_smooth_df.loc[group_indices, 'ES'] = smoothed
+
+            exp_smooth_df = exp_smooth_df.groupby('Category').tail(1)
+
+            # merge back with forecast
+            forecasts = pd.merge(forecasts, exp_smooth_df[['Category', 'ES']], on="Category", how="inner")
+            forecasts.drop(columns='level_1')
+
+            forecasts['Flagged_SMA'] = np.where(forecasts['SMA'] > forecasts['Average'], 'Yes', 'No')
+            forecasts['Flagged_ES'] = np.where(forecasts['ES'] > forecasts['Average'], 'Yes', 'No')
+
+            flagged_categories = forecasts[(forecasts['Flagged_SMA'] == 'Yes') & (forecasts['Flagged_ES'] == 'Yes')][
+                ['Category', 'Average', 'SMA', 'ES', 'Flagged_SMA', 'Flagged_ES']]
+
+            # calculate percentage change from SMA and average to average for every category
+            flagged_categories['pct_change_SMA'] = (flagged_categories['SMA'] - flagged_categories['Average']) / \
+                                                   flagged_categories['Average'] * 100
+            flagged_categories['pct_change_ES'] = (flagged_categories['ES'] - flagged_categories['Average']) / \
+                                                  flagged_categories['Average'] * 100
+
+            # round all int values to 2 decimal places
+            flagged_categories[['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']] = flagged_categories[
+                ['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']].round(2)
+
+            # TABLE
+            flagged_fig = go.Figure(data=[go.Table(
+                header=dict(values=list(flagged_categories.columns),
+                            fill_color='#17becf',
+                            align='left'),
+                cells=dict(
+                    values=[flagged_categories.Category, flagged_categories.Average, flagged_categories.SMA,
+                            flagged_categories.ES, flagged_categories.Flagged_SMA, flagged_categories.Flagged_ES,
+                            flagged_categories.pct_change_SMA, flagged_categories.pct_change_ES],
+                    fill_color='lavender',
+                    align='left'))
+            ]
+            )
+            return dcc.Graph(figure=flagged_fig)
+
+        elif analysis_type == 'Time Series':
             time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
                                 hover_name="Category", title="What does a time series of my expenses look like?")
             time_fig1.update_traces(line_color='#17B897')
@@ -205,8 +284,6 @@ def make_graphs(n, data, analysis_type, ranked):
             scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
                                       title="What does a plot of my transactions by category look like?")
             scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-
-            print(scatter_2df)
 
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
 
@@ -413,20 +490,6 @@ def make_graphs(n, data, analysis_type, ranked):
             )
 
             # TABLE
-            # avg_df = df.groupby(df['Category'])['Amount'].mean().to_frame().reset_index()
-            df2 = df.loc[:, ['Date', 'Category', 'Amount']]
-            # df2.rename(columns={'level_1': 'SMA7'})
-
-            # avg_df_fig = go.Figure(data=[go.Table(
-            #     header=dict(values=list(avg_df.columns),
-            #                 fill_color='#17becf',
-            #                 align='left'),
-            #     cells=dict(values=[avg_df.Category, avg_df.Amount],
-            #                fill_color='lavender',
-            #                align='left'))
-            # ]
-            # )
-
             df2_fig = go.Figure(data=[go.Table(
                 header=dict(values=list(df2.columns),
                             fill_color='#17becf',
