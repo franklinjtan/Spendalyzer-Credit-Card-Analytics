@@ -71,16 +71,7 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
         ],
         className="upload",
     ),
-    # html.Div(
-    #     children=[
-    #         html.Div(html.H1(
-    #             children="FRANKLIN TAN", className="card"
-    #             )
-    #         ),
-    #         html.P(children="CORNELL UNIVERSITY", className="card"),
-    #     ],
-    #     className="wrapper",
-    # ),
+
     html.Div(
         children=[
             # OUTPUT
@@ -221,7 +212,8 @@ def make_graphs(n, data, analysis_type, ranked):
 
         elif analysis_type == 'Bar Chart':
             # TOP RANKINGS
-            cat_vs_amount_df1 = pd.DataFrame().assign(Category=df['Category'], Amount = df['Amount'])#(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
+            cat_vs_amount_df1 = pd.DataFrame().assign(Category=df['Category'], Amount=df[
+                'Amount'])  # (columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
             cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
                 'Amount'].sum().to_frame().reset_index()
             cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
@@ -420,9 +412,33 @@ def make_graphs(n, data, analysis_type, ranked):
                 height=600,
             )
 
+            # TABLE
+            # avg_df = df.groupby(df['Category'])['Amount'].mean().to_frame().reset_index()
+            df2 = df.loc[:, ['Date', 'Category', 'Amount']]
+            # df2.rename(columns={'level_1': 'SMA7'})
+
+            # avg_df_fig = go.Figure(data=[go.Table(
+            #     header=dict(values=list(avg_df.columns),
+            #                 fill_color='#17becf',
+            #                 align='left'),
+            #     cells=dict(values=[avg_df.Category, avg_df.Amount],
+            #                fill_color='lavender',
+            #                align='left'))
+            # ]
+            # )
+
+            df2_fig = go.Figure(data=[go.Table(
+                header=dict(values=list(df2.columns),
+                            fill_color='#17becf',
+                            align='left'),
+                cells=dict(values=[df.Date, df2.Category, df2.Amount],
+                           fill_color='lavender',
+                           align='left'))
+            ]
+            )
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
                 figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(
-                figure=box_plot), dcc.Graph(figure=map_fig)
+                figure=box_plot), dcc.Graph(figure=map_fig), dcc.Graph(figure=df2_fig)
 
 
 if __name__ == '__main__':

@@ -2,15 +2,69 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Spending Analytics
+    <link rel="stylesheet" type="text/css" href="assets/styles.css">
+    <title>Spending Analytics 🏦
     </title>
+    <style>
+    body {
+      background-color: lightblue;
+    }
+  </style>
 </head>
 
-<body>
-<h1>Spending Analytics</h1>
-<p><a href="http://127.0.0.1:8050/" target="_blank" rel="noopener noreferrer">Open Application</a></p>
-<br>
-<p>An interactive web application that allows users to upload their bank statements, receive an analysis of their purchase history, and consequently understand their purchasing behavior.</p>
+<body class="wrapper">
+<div class="card2">
+    <h1>Spending Analytics 🏦</h1>
+    <p><a href="http://127.0.0.1:8050/" target="_blank" rel="noopener noreferrer">Open Application</a></p>
+    <p>An interactive web application that allows users to upload their bank statements, receive an analysis of their
+        purchase history, and consequently understand their purchasing behavior.</p>
 
+    <h2>Why personal spending analytics is important?</h2>
+    <p>
+        Personal spending analytics is important for several reasons, including:<br>
+    <ul>
+        <li><b>Budgeting and Financial Planning</b> By tracking your spending, you can identify where your money is going and
+            make adjustments to your budget or financial plan as needed. This can help you save money, pay off debt, and
+            achieve your financial goals.
+        </li><br>
+        <li><b>Identifying Areas of Overspending</b> Personal spending analytics can help you identify areas where you may be
+            overspending, such as eating out, entertainment, or shopping. Once you know where your money is going, you
+            can make conscious decisions to cut back on expenses in those areas.
+        </li><br>
+        <li><b>Improving Financial Literacy</b> Analyzing your spending habits can help you become more financially literate
+            by understanding where your money is going, how you can make better financial decisions, and what areas of
+            your spending can be improved.
+        </li><br>
+        <li><b>Tracking Progress Towards Goals</b> By monitoring your spending over time, you can track your progress towards
+            financial goals such as saving for a down payment on a house, paying off debt, or building an emergency
+            fund.
+        </li>
+    </ul>
+    Overall, personal spending analytics can help you make better financial decisions and take control of your finances,
+    leading to increased financial stability and improved overall well-being.
+    </p>
+    <h2>Exponential Smoothing vs. Moving Average</h2>
+    <p>Both exponential smoothing and moving average are used in time series forecasting to identify patterns and trends
+        in data. However, they differ in how they weight historical data.
+        Moving average is a simple and effective method for smoothing out fluctuations in a time series. It is
+        calculated as the average of a fixed number of past data points, with the fixed number referred to as the
+        "window size". Moving average is useful for identifying trends and can help to remove random fluctuations in the
+        data. It is easy to use and understand, but it can lag behind the actual data and may not capture sudden changes
+        or sharp turning points.
+    </p>
+    <p>
+        Exponential smoothing, on the other hand, is a more sophisticated method that gives more weight to recent data
+        and less weight to older data. This is done by applying a smoothing factor or weight to each historical data
+        point, with the weights declining exponentially as the data gets older. Exponential smoothing can be more
+        accurate in predicting short-term trends and can react more quickly to changes in the data. It can also be
+        adjusted to incorporate seasonality and trend changes. However, it requires more knowledge and experience to
+        implement and tune the smoothing factor.
+    </p>
+    <p>
+        In summary, moving average is a good choice for simple, straightforward time series data, while exponential
+        smoothing is better for data with more complexity and volatility. The choice between these methods ultimately
+        depends on the data and the specific goals of the analysis.
+    </p>
+</div>
 </body>
 </html>
