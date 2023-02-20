@@ -118,7 +118,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'Forecast Recommendations', 'Time Series', 'Bar Chart',
+                                     options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart',
                                               'Pie Chart', 'Box Plot',
                                               'Geo-Location']),
                     ]
@@ -140,7 +140,7 @@ def parse_contents(contents, filename, date):
                 html.Div(
                     children=[
                         html.Button(id="submit-button",
-                                    children="Create Graph",
+                                    children="Generate",
                                     style={"min-width": "150px",
                                            "font-weight": "bold",
                                            "color": "#079A82",
@@ -197,7 +197,7 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
         df['Date'] = pd.to_datetime(df['Date'])
 
-        if analysis_type == 'Forecast Recommendations':
+        if analysis_type == 'SMA + ES Forecast':
             df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country"])
 
             avg_df = df.groupby(['Category'])['Amount'].mean().to_frame().reset_index()
@@ -241,7 +241,6 @@ def make_graphs(n, data, analysis_type, ranked):
 
             # merge back with forecast
             forecasts = pd.merge(forecasts, exp_smooth_df[['Category', 'ES']], on="Category", how="inner")
-            forecasts.drop(columns='level_1')
 
             forecasts['Flagged_SMA'] = np.where(forecasts['SMA'] > forecasts['Average'], 'Yes', 'No')
             forecasts['Flagged_ES'] = np.where(forecasts['ES'] > forecasts['Average'], 'Yes', 'No')
@@ -250,29 +249,81 @@ def make_graphs(n, data, analysis_type, ranked):
                 ['Category', 'Average', 'SMA', 'ES', 'Flagged_SMA', 'Flagged_ES']]
 
             # calculate percentage change from SMA and average to average for every category
+            forecasts['pct_change_SMA'] = (forecasts['SMA'] - forecasts['Average']) / \
+                                                   forecasts['Average'] * 100
+            forecasts['pct_change_ES'] = (forecasts['ES'] - forecasts['Average']) / \
+                                                  forecasts['Average'] * 100
+
             flagged_categories['pct_change_SMA'] = (flagged_categories['SMA'] - flagged_categories['Average']) / \
                                                    flagged_categories['Average'] * 100
             flagged_categories['pct_change_ES'] = (flagged_categories['ES'] - flagged_categories['Average']) / \
                                                   flagged_categories['Average'] * 100
 
             # round all int values to 2 decimal places
+            forecasts[['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']] = forecasts[
+                ['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']].round(2)
+
             flagged_categories[['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']] = flagged_categories[
                 ['Average', 'SMA', 'ES', 'pct_change_SMA', 'pct_change_ES']].round(2)
 
+            forecasts = forecasts.drop(columns='level_1')
             # TABLE
+            all_categories_fig = go.Figure(data=[go.Table(
+                header=dict(values=list(forecasts.columns),
+                            fill_color='grey',
+                            font_color='white',
+                            align='left'),
+                cells=dict(
+                    values=[forecasts.Category, forecasts.Average, forecasts.SMA,
+                            forecasts.ES, forecasts.Flagged_SMA, forecasts.Flagged_ES,
+                            forecasts.pct_change_SMA, forecasts.pct_change_ES],
+                    fill_color='lightgrey',
+                    font_color='black',
+                    align='left')),
+            ])
+
             flagged_fig = go.Figure(data=[go.Table(
                 header=dict(values=list(flagged_categories.columns),
-                            fill_color='#17becf',
+                            fill_color='grey',
+                            font_color='white',
                             align='left'),
                 cells=dict(
                     values=[flagged_categories.Category, flagged_categories.Average, flagged_categories.SMA,
                             flagged_categories.ES, flagged_categories.Flagged_SMA, flagged_categories.Flagged_ES,
                             flagged_categories.pct_change_SMA, flagged_categories.pct_change_ES],
-                    fill_color='lavender',
-                    align='left'))
-            ]
+                    fill_color='lightgrey',
+                    font_color='black',
+                    align='left')),
+            ])
+            message = ""
+
+            for index, row in flagged_categories.iterrows():
+                message += "Flagged Category: {}<br>SMA and the ES forecasts are projected to surpass the average of ${}. SMA and ES Forecasts indicate an increase of {:.2f}% and {:.2f}%, respectively.<br><br>".format(
+                    row['Category'], row['Average'], row['pct_change_SMA'], row['pct_change_ES'])
+
+            flagged_fig.update_layout(
+                title='SMA and ES Forecasts',
+                height=800,
+                annotations=[
+                    go.layout.Annotation(
+                        x=0,
+                        y=0.05,
+                        align="left",
+                        showarrow=False,
+                        text=message,
+                        xref="paper",
+                        yref="paper",
+                        font=dict(
+                            family="Arial",
+                            size=14,
+                            color="black"
+                        )
+                    )
+                ]
             )
-            return dcc.Graph(figure=flagged_fig)
+            print(message)
+
+            return dcc.Graph(figure=flagged_fig), dcc.Graph(figure=all_categories_fig)
 
         elif analysis_type == 'Time Series':
             time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
@@ -490,18 +541,10 @@ def make_graphs(n, data, analysis_type, ranked):
             )
 
             # TABLE
-            df2_fig = go.Figure(data=[go.Table(
-                header=dict(values=list(df2.columns),
-                            fill_color='#17becf',
-                            align='left'),
-                cells=dict(values=[df.Date, df2.Category, df2.Amount],
-                           fill_color='lavender',
-                           align='left'))
-            ]
-            )
+
             return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
                 figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(
-                figure=box_plot), dcc.Graph(figure=map_fig), dcc.Graph(figure=df2_fig)
+                figure=box_plot), dcc.Graph(figure=map_fig)
 
 
 if __name__ == '__main__':
