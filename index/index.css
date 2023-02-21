@@ -36,6 +36,10 @@ h2 {
     animation: typing 2s steps(28, end) infinite;
 }
 
+p{
+    text-align: justify;
+}
+
 /* Style the links */
 a {
     color: #0099ff;
