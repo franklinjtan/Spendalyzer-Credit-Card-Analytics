@@ -7,7 +7,10 @@ import pgeocode
 import geopandas as gpd
 from geopandas import GeoDataFrame
 
-from funcs import clean_currency
+from funcs import clean_currency, create_forecast_recommendations_flagged, create_forecast_recommendations_all, \
+    create_time_series, create_scatter_plot, create_pie_chart, create_box_plot, create_geo_location_plot, \
+    create_bar_chart_top_rankings, \
+    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis
 import dash
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
@@ -71,16 +74,7 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
         ],
         className="upload",
     ),
-    # html.Div(
-    #     children=[
-    #         html.Div(html.H1(
-    #             children="FRANKLIN TAN", className="card"
-    #             )
-    #         ),
-    #         html.P(children="CORNELL UNIVERSITY", className="card"),
-    #     ],
-    #     className="wrapper",
-    # ),
+
     html.Div(
         children=[
             # OUTPUT
@@ -127,10 +121,12 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'Time Series', 'Bar Chart', 'Pie Chart', 'Box Plot',
+                                     options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart',
+                                              'Pie Chart', 'Box Plot',
                                               'Geo-Location']),
                     ]
                 ),
+
                 # INPUT DROP DOWN FOR RANKED EXPENSES
                 html.Div(
                     children=[
@@ -147,7 +143,7 @@ def parse_contents(contents, filename, date):
                 html.Div(
                     children=[
                         html.Button(id="submit-button",
-                                    children="Create Graph",
+                                    children="Generate",
                                     style={"min-width": "150px",
                                            "font-weight": "bold",
                                            "color": "#079A82",
@@ -193,7 +189,7 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
               Input('submit-button', 'n_clicks'),
               State('stored-data', 'data'),
               State('analysis-type', 'value'),
-              State('ranked', 'value'),
+              State('ranked', 'value')
               )
 def make_graphs(n, data, analysis_type, ranked):
     if n is None:
@@ -204,225 +200,37 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
         df['Date'] = pd.to_datetime(df['Date'])
 
-        if analysis_type == 'Time Series':
-            time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
-                                hover_name="Category", title="What does a time series of my expenses look like?")
-            time_fig1.update_traces(line_color='#17B897')
+        if analysis_type == 'SMA + ES Forecast':
+            return create_forecast_recommendations_flagged(df), create_forecast_recommendations_all(df)
 
-            scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-            scatter_2df['Year'] = pd.DatetimeIndex(scatter_2df['Date']).year
-            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
-                                      title="What does a plot of my transactions by category look like?")
-            scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-
-            print(scatter_2df)
-
-            return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2)
+        elif analysis_type == 'Time Series':
+            return create_time_series(df), create_scatter_plot(df)
 
         elif analysis_type == 'Bar Chart':
-            # TOP RANKINGS
-            cat_vs_amount_df1 = pd.DataFrame().assign(Category=df['Category'], Amount = df['Amount'])#(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
-            cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
-                'Amount'].sum().to_frame().reset_index()
-            cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
-            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
-                              title="What are your top " + str(ranked) + " rankings?")
-
-            # BOTTOM RANKINGS
-            cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
-            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
-                              title="What are your bottom " + str(ranked) + " rankings?")
-
-            # Transform x variable to group by day of the week
-            days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            df['Day_of_Week'] = df['Date'].dt.day_name()
-            df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
-            bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
-            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount', color='Day_of_Week',
-                              title="What are your total transactions by day?")
-
-            return dcc.Graph(figure=bar_fig1), dcc.Graph(figure=bar_fig2), dcc.Graph(figure=bar_fig3)
+            return create_bar_chart_top_rankings(df, ranked), \
+                create_bar_chart_bottom_rankings(df, ranked), \
+                create_bar_chart_days_analysis(df, ranked)
 
         elif analysis_type == 'Pie Chart':
-            pie_df = pd.DataFrame().assign(Category = df['Category'], Amount = df['Amount'])#df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
-            pie_df['Type'] = np.where(df['Category'].isin(
-                ['Car Insurance', 'Car Loan', 'Car Maintenance', 'Electric Bill', 'Gas', 'Gas Bill', 'Groceries',
-                 'Health Care', 'Housing', 'Internet Bill']), True, False)
-
-            pie_df['Type'] = pie_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
-            pie_df = pie_df.groupby(pie_df['Type'])['Amount'].sum().to_frame().reset_index()
-            colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
-
-            pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
-                               color_discrete_map=colors,
-                               title='What does my expense breakdown by necessities and non-essentials look like?')
-
-            return dcc.Graph(figure=pie_fig_1)
+            return create_pie_chart(df)
 
         elif analysis_type == 'Box Plot':
-            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
-                              hover_name="Date", title='What outlier transactions can we detect?')
-            box_plot.update_traces(quartilemethod="exclusive")
-            return dcc.Graph(figure=box_plot)
+            return create_box_plot(df)
 
         elif analysis_type == 'Geo-Location':
-            nomi = pgeocode.Nominatim('us')  # Interpret zipcodes as US
-            df['Latitude'] = nomi.query_postal_code(
-                df['Zip Code'].tolist()).latitude  # Create column that loads in the latitude based on Zip Code
-            df['Longitude'] = nomi.query_postal_code(
-                df['Zip Code'].tolist()).longitude  # Create column that loads in the longitude based on Zip Code
-
-            map_fig = go.Figure(data=go.Scattergeo(
-                lon=df['Longitude'],
-                lat=df['Latitude'],
-                text=df['City/State'],
-                mode='markers',
-                marker_color=df['Amount'],
-                marker=dict(
-                    size=4,
-                    opacity=0.8,
-                    reversescale=True,
-                    autocolorscale=False,
-                    symbol='square',
-                    line=dict(
-                        width=4,
-                        color='#B31942'
-                    ),
-                ))
-            )
-            map_fig.update_layout(
-                geo=dict(
-                    showland=True,
-                    landcolor="#0A3161",
-                    subunitcolor="rgb(255, 255, 255)",
-                    showsubunits=True,
-                    resolution=50,
-                    lonaxis=dict(
-                        showgrid=True,
-                        gridwidth=0.5,
-                        range=[-140.0, -55.0],
-                        dtick=5
-                    ),
-                    lataxis=dict(
-                        showgrid=True,
-                        gridwidth=0.5,
-                        range=[20.0, 60.0],
-                        dtick=5
-                    )
-                ),
-                title='Where are your purchases?',
-                geo_scope='usa',
-                width=1400,
-                height=600,
-            )
-            return dcc.Graph(figure=map_fig)
+            return create_geo_location_plot(df)
 
         elif analysis_type == 'All':
-            # TIME SERIES
-            time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
-                                hover_name="Category", title="What does a time series of my expenses look like?")
-            time_fig1.update_traces(line_color='#17B897')
-
-            # SCATTER PLOT
-            scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-            scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
-                                      title="What does a plot of my transactions by category look like?")
-            scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-
-            # BAR CHART
-            cat_vs_amount_df1 = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])
-            cat_vs_amount_df1 = cat_vs_amount_df1.groupby(cat_vs_amount_df1['Category'])[
-                'Amount'].sum().to_frame().reset_index()
-            cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
-            bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
-                              title="What are your top " + str(ranked) + " rankings?")
-
-            # BOTTOM RANKINGS
-            cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
-            bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
-                              title="What are your top " + str(ranked) + " rankings?")
-
-            # Transform x variable to group by day of the week
-            days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            df['Day_of_Week'] = df['Date'].dt.day_name()
-            df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
-            bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
-            bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount', color='Day_of_Week',
-                              title="What are your total transactions by day?")
-
-            # PIE CHART
-            pie_df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country", ])  # Remove cols
-            pie_df['Type'] = np.where(df['Category'].isin(
-                ['Car Insurance', 'Car Loan', 'Car Maintenance', 'Electric Bill', 'Gas', 'Gas Bill', 'Groceries',
-                 'Health Care', 'Housing', 'Internet Bill']), True, False)
-
-            pie_df['Type'] = pie_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
-            pie_df = pie_df.groupby(pie_df['Type'])['Amount'].sum().to_frame().reset_index()
-            colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
-
-            pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
-                               color_discrete_map=colors,
-                               title='What does my expense breakdown by necessities and non-essentials look like?')
-
-            # BOX PLOT
-            box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
-                              hover_name="Date", title='What outlier transactions can we detect?')
-            box_plot.update_traces(quartilemethod="exclusive")  # or "inclusive", or "linear" by default
-
-            # GEO-LOCATION
-            nomi = pgeocode.Nominatim('us')  # Interpret zipcodes as US
-            df['Latitude'] = nomi.query_postal_code(
-                df['Zip Code'].tolist()).latitude  # Create column that loads in the latitude based on Zip Code
-            df['Longitude'] = nomi.query_postal_code(
-                df['Zip Code'].tolist()).longitude  # Create column that loads in the longitude based on Zip Code
-
-            map_fig = go.Figure(data=go.Scattergeo(
-                lon=df['Longitude'],
-                lat=df['Latitude'],
-                text=df['City/State'],
-                mode='markers',
-                marker_color=df['Amount'],
-                marker=dict(
-                    size=4,
-                    opacity=0.8,
-                    reversescale=True,
-                    autocolorscale=False,
-                    symbol='square',
-                    line=dict(
-                        width=4,
-                        color='#B31942'
-                    ),
-                ))
-            )
-            map_fig.update_layout(
-                geo=dict(
-                    showland=True,
-                    landcolor="#0A3161",
-                    subunitcolor="rgb(255, 255, 255)",
-                    showsubunits=True,
-                    resolution=50,
-                    lonaxis=dict(
-                        showgrid=True,
-                        gridwidth=0.5,
-                        range=[-140.0, -55.0],
-                        dtick=5
-                    ),
-                    lataxis=dict(
-                        showgrid=True,
-                        gridwidth=0.5,
-                        range=[20.0, 60.0],
-                        dtick=5
-                    )
-                ),
-                title='Where are your purchases?',
-                geo_scope='usa',
-                width=1400,
-                height=600,
-            )
-
-            return dcc.Graph(figure=time_fig1), dcc.Graph(figure=scatter_fig2), dcc.Graph(figure=bar_fig1), dcc.Graph(
-                figure=bar_fig2), dcc.Graph(figure=bar_fig3), dcc.Graph(figure=pie_fig_1), dcc.Graph(
-                figure=box_plot), dcc.Graph(figure=map_fig)
+            return create_forecast_recommendations_flagged(df), \
+                create_forecast_recommendations_all(df), \
+                create_time_series(df), \
+                create_scatter_plot(df), \
+                create_bar_chart_top_rankings(df, ranked), \
+                create_bar_chart_bottom_rankings(df, ranked), \
+                create_bar_chart_days_analysis(df, ranked), \
+                create_pie_chart(df), \
+                create_box_plot(df), \
+                create_geo_location_plot(df)
 
 
 if __name__ == '__main__':
