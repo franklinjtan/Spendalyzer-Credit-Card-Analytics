@@ -5,7 +5,7 @@ body {
 }
 
 .header {
-    background-color: darkslategrey;
+    background-color: #517590;
     height: 288px;
     padding: 16px 0 0 0;
 }
@@ -80,5 +80,25 @@ body {
 .menu-title {
     margin-bottom: 6px;
     font-weight: bold;
-    color: #079A82;
+    color: #004c6d;
+}
+
+.app-btn {
+    background-color: #004c6d;
+    color: #FFFFFF;
+    font-size: 0.8rem;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+    font-weight: bold;
+    height: 50px;
+    margin-top: 5px;
+    margin-left: 5px
+}
+
+.app-btn:hover {
+    background-color: #ff832b;
 }

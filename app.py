@@ -8,9 +8,9 @@ import geopandas as gpd
 from geopandas import GeoDataFrame
 
 from funcs import clean_currency, create_forecast_recommendations_flagged, create_forecast_recommendations_all, \
-    create_time_series, create_scatter_plot, create_pie_chart, create_box_plot, create_geo_location_plot, \
+    create_time_series, create_pie_chart, create_box_plot, create_geo_location_plot, \
     create_bar_chart_top_rankings, \
-    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis
+    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis, create_line_plot
 import dash
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
@@ -134,7 +134,7 @@ def parse_contents(contents, filename, date):
                         dcc.Dropdown(
                             id="ranked",
                             options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                            value=10,
+                            value=5,
                             clearable=False,
                             className="dropdown",
                         ),
@@ -142,14 +142,8 @@ def parse_contents(contents, filename, date):
                 ),
                 html.Div(
                     children=[
-                        html.Button(id="submit-button",
-                                    children="Generate",
-                                    style={"min-width": "150px",
-                                           "font-weight": "bold",
-                                           "color": "#079A82",
-                                           "height": "50px",
-                                           "margin-top": "5px",
-                                           "margin-left": "5px"}),
+                        html.Button(id="submit-button", className='app-btn',
+                                    children="Generate"),
                     ],
                 ),
             ],
@@ -201,15 +195,15 @@ def make_graphs(n, data, analysis_type, ranked):
         df['Date'] = pd.to_datetime(df['Date'])
 
         if analysis_type == 'SMA + ES Forecast':
-            return create_forecast_recommendations_flagged(df), create_forecast_recommendations_all(df)
+            return create_forecast_recommendations_all(df), create_forecast_recommendations_flagged(df)
 
         elif analysis_type == 'Time Series':
-            return create_time_series(df), create_scatter_plot(df)
+            return create_time_series(df), create_line_plot(df, ranked)
 
         elif analysis_type == 'Bar Chart':
             return create_bar_chart_top_rankings(df, ranked), \
                 create_bar_chart_bottom_rankings(df, ranked), \
-                create_bar_chart_days_analysis(df, ranked)
+                create_bar_chart_days_analysis(df)
 
         elif analysis_type == 'Pie Chart':
             return create_pie_chart(df)
@@ -221,13 +215,13 @@ def make_graphs(n, data, analysis_type, ranked):
             return create_geo_location_plot(df)
 
         elif analysis_type == 'All':
-            return create_forecast_recommendations_flagged(df), \
-                create_forecast_recommendations_all(df), \
+            return create_forecast_recommendations_all(df),\
+                create_forecast_recommendations_flagged(df), \
                 create_time_series(df), \
-                create_scatter_plot(df), \
+                create_line_plot(df, ranked), \
                 create_bar_chart_top_rankings(df, ranked), \
                 create_bar_chart_bottom_rankings(df, ranked), \
-                create_bar_chart_days_analysis(df, ranked), \
+                create_bar_chart_days_analysis(df), \
                 create_pie_chart(df), \
                 create_box_plot(df), \
                 create_geo_location_plot(df)

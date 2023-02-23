@@ -88,19 +88,20 @@ def create_forecast_recommendations_all(df):
     # TABLE
     all_categories_fig = go.Figure(data=[go.Table(
         header=dict(values=list(forecasts.columns),
-                    fill_color='grey',
+                    fill_color='#004c6d',
                     font_color='white',
                     align='left'),
         cells=dict(
             values=[forecasts.Category, forecasts.Average, forecasts.SMA,
                     forecasts.ES, forecasts.Flagged_SMA, forecasts.Flagged_ES,
                     forecasts.pct_change_SMA, forecasts.pct_change_ES],
-            fill_color='lightgrey',
+            fill_color='#a7b8c6',
             font_color='black',
             align='left')),
     ])
 
     return dcc.Graph(figure=all_categories_fig)
+
 
 def create_forecast_recommendations_flagged(df):
     df = df.drop(columns=["Description", "Address", "City/State", "Zip Code", "Country"])
@@ -176,14 +177,14 @@ def create_forecast_recommendations_flagged(df):
 
     flagged_fig = go.Figure(data=[go.Table(
         header=dict(values=list(flagged_categories.columns),
-                    fill_color='grey',
+                    fill_color='#004c6d',
                     font_color='white',
                     align='left'),
         cells=dict(
             values=[flagged_categories.Category, flagged_categories.Average, flagged_categories.SMA,
                     flagged_categories.ES, flagged_categories.Flagged_SMA, flagged_categories.Flagged_ES,
                     flagged_categories.pct_change_SMA, flagged_categories.pct_change_ES],
-            fill_color='lightgrey',
+            fill_color='#a7b8c6',
             font_color='black',
             align='left')),
     ])
@@ -215,19 +216,27 @@ def create_forecast_recommendations_flagged(df):
     )
 
     return dcc.Graph(figure=flagged_fig)
+
+
 def create_time_series(df):
     time_fig1 = px.line(df, 'Date', 'Amount', markers=True,
                         hover_name="Category", title="What does a time series of my expenses look like?")
-    time_fig1.update_traces(line_color='#17B897')
+    time_fig1.update_traces(line_color='#004c6d')
     return dcc.Graph(figure=time_fig1)
 
 
-def create_scatter_plot(df):
-    scatter_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
-    scatter_fig2 = px.scatter(scatter_2df, 'Date', 'Amount', color='Category',
-                              title="What does a plot of my transactions by category look like?")
-    scatter_fig2.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-    return dcc.Graph(figure=scatter_fig2)
+def create_line_plot(df, ranked):
+    line_2df = df.groupby(['Category', 'Date'])['Amount'].sum().to_frame().reset_index()
+    top_categories = line_2df.groupby('Category')['Amount'].sum().sort_values(ascending=False).index[:ranked]
+    line_2df = line_2df[line_2df['Category'].isin(top_categories)]
+    line_fig2 = px.line(line_2df, 'Date', 'Amount', color='Category',
+                        title="What does a plot of my transactions by category look like? (Top " + str(
+                            ranked) + " rankings)",
+                        color_discrete_sequence=['#004c6d', '#9f1853', '#198038', '#b28600', '#8a3800', '#1192e8',
+                                                 '#ff7c43', '#005d5d', '#009d9a', '#012749'])
+    # color_discrete_sequence=px.colors.qualitative.Safe)
+    line_fig2.update_traces(mode='lines+markers', marker_line_width=2, marker_size=10)
+    return dcc.Graph(figure=line_fig2)
 
 
 def create_bar_chart_top_rankings(df, ranked):
@@ -238,9 +247,12 @@ def create_bar_chart_top_rankings(df, ranked):
         'Amount'].sum().to_frame().reset_index()
     cat_vs_amount_df1 = cat_vs_amount_df1.sort_values('Amount', ascending=False).head(ranked)
     bar_fig1 = px.bar(cat_vs_amount_df1, 'Category', 'Amount', color='Category',
-                      title="What are your top " + str(ranked) + " rankings?")
+                      title="What are your top " + str(ranked) + " rankings?",
+                      color_discrete_sequence=['#004c6d', '#155b79', '#2b6a85', '#407992', '#55889e', '#6a97aa',
+                                               '#80a6b6', '#95b4c2', '#aac3ce', '#bfd2db'])
 
     return dcc.Graph(figure=bar_fig1)
+
 
 def create_bar_chart_bottom_rankings(df, ranked):
     cat_vs_amount_df1 = pd.DataFrame().assign(Category=df['Category'], Amount=df[
@@ -251,20 +263,27 @@ def create_bar_chart_bottom_rankings(df, ranked):
     # BOTTOM RANKINGS
     cat_vs_amount_df2 = cat_vs_amount_df1.sort_values('Amount', ascending=True).head(ranked)
     bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
-                      title="What are your bottom " + str(ranked) + " rankings?")
+                      title="What are your bottom " + str(ranked) + " rankings?",
+                      color_discrete_sequence=['#004c6d', '#155b79', '#2b6a85', '#407992', '#55889e', '#6a97aa',
+                                               '#80a6b6','#95b4c2', '#aac3ce','#bfd2db'])
 
     return dcc.Graph(figure=bar_fig2)
 
-def create_bar_chart_days_analysis(df, ranked):
+
+def create_bar_chart_days_analysis(df):
     # Transform x variable to group by day of the week
     days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     df['Day_of_Week'] = df['Date'].dt.day_name()
     df['Day_of_Week'] = pd.Categorical(df['Day_of_Week'], categories=days_of_week, ordered=True)
     bar3_df = df.groupby(df['Day_of_Week'])['Amount'].count().to_frame().reset_index()
+    bar3_df = bar3_df.sort_values(by='Amount', ascending=False)
     bar_fig3 = px.bar(bar3_df, 'Day_of_Week', 'Amount', color='Day_of_Week',
+                      color_discrete_sequence=['#004c6d', '#29617d', '#46778d', '#618d9e', '#7da3af', '#9abac1',
+                                               '#b8d1d5'],
                       title="What are your total transactions by day?")
 
     return dcc.Graph(figure=bar_fig3)
+
 
 
 def create_pie_chart(df):
@@ -275,7 +294,7 @@ def create_pie_chart(df):
 
     pie_df['Type'] = pie_df['Type'].replace({True: "Necessities", False: "Non-essentials"})
     pie_df = pie_df.groupby(pie_df['Type'])['Amount'].sum().to_frame().reset_index()
-    colors = {'Necessities': '#17B897', 'Non-essentials': '#ff7f0e'}
+    colors = {'Necessities': '#003f5c', 'Non-essentials': '#8a3800'}
 
     pie_fig_1 = px.pie(pie_df, values='Amount', names='Type', color='Type',
                        color_discrete_map=colors,
@@ -283,11 +302,15 @@ def create_pie_chart(df):
 
     return dcc.Graph(figure=pie_fig_1)
 
+
 def create_box_plot(df):
     box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
-                      hover_name="Date", title='What outlier transactions can we detect?')
+                      color_discrete_sequence=['#004c6d', '#155b79', '#2b6a85', '#407992', '#55889e', '#6a97aa',
+                                               '#80a6b6', '#95b4c2', '#aac3ce', '#bfd2db'],
+                      hover_name="Date", title='What outlier transactions can we detect?',)
     box_plot.update_traces(quartilemethod="exclusive")
     return dcc.Graph(figure=box_plot)
+
 
 def create_geo_location_plot(df):
     nomi = pgeocode.Nominatim('us')  # Interpret zipcodes as US
@@ -317,7 +340,7 @@ def create_geo_location_plot(df):
     map_fig.update_layout(
         geo=dict(
             showland=True,
-            landcolor="#0A3161",
+            landcolor="#004c6d",
             subunitcolor="rgb(255, 255, 255)",
             showsubunits=True,
             resolution=50,
