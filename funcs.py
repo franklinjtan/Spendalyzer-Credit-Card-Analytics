@@ -363,3 +363,14 @@ def create_geo_location_plot(df):
         height=600,
     )
     return dcc.Graph(figure=map_fig)
+
+def create_spending_by_location(df, zipcode):
+    if len(zipcode) >= 5:
+        df['PrimaryZip'] = np.where(df['Zip Code'] == zipcode, 'Primary Zip Code', 'Not Primary Zip Code')
+        box_plot = px.box(df, x="PrimaryZip", y='Amount', color="PrimaryZip", points="suspectedoutliers",
+                        hover_name="Amount", title='What does spending look like outside our home address?',
+                        labels= "Primary Zip Code vs. Other Zip Code")
+        box_plot.update_traces(quartilemethod="exclusive")
+        return dcc.Graph(figure=box_plot)
+    else:
+        return('Zipcode must be at least 5 characters long')

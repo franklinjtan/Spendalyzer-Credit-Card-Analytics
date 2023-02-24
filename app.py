@@ -10,7 +10,7 @@ from geopandas import GeoDataFrame
 from funcs import clean_currency, create_forecast_recommendations_flagged, create_forecast_recommendations_all, \
     create_time_series, create_pie_chart, create_box_plot, create_geo_location_plot, \
     create_bar_chart_top_rankings, \
-    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis, create_line_plot
+    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis, create_line_plot, create_spending_by_location
 import dash
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
@@ -123,7 +123,7 @@ def parse_contents(contents, filename, date):
                         dcc.Dropdown(id='analysis-type',
                                      options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart',
                                               'Pie Chart', 'Box Plot',
-                                              'Geo-Location']),
+                                              'Geo-Location', 'Spending by Location']),
                     ]
                 ),
 
@@ -140,6 +140,21 @@ def parse_contents(contents, filename, date):
                         ),
                     ]
                 ),
+
+                # INPUT ZIP CODE
+                html.Div(
+                    children=[
+                        html.Div(children="Enter Zip Code", className="menu-title"),
+                        dcc.Input(
+                            id="zipcode",
+                            className="dropdown",
+                            style={
+                                'width': '60%',
+                                'height': '60%'}
+                        ),
+                    ]
+                ),
+
                 html.Div(
                     children=[
                         html.Button(id="submit-button", className='app-btn',
@@ -183,9 +198,10 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
               Input('submit-button', 'n_clicks'),
               State('stored-data', 'data'),
               State('analysis-type', 'value'),
-              State('ranked', 'value')
+              State('ranked', 'value'),
+              State('zipcode', 'value')
               )
-def make_graphs(n, data, analysis_type, ranked):
+def make_graphs(n, data, analysis_type, ranked, zipcode):
     if n is None:
         return dash.no_update
     else:
@@ -214,6 +230,9 @@ def make_graphs(n, data, analysis_type, ranked):
         elif analysis_type == 'Geo-Location':
             return create_geo_location_plot(df)
 
+        elif analysis_type == 'Spending by Location':
+            return create_spending_by_location(df, zipcode)
+
         elif analysis_type == 'All':
             return create_forecast_recommendations_all(df),\
                 create_forecast_recommendations_flagged(df), \
@@ -225,7 +244,7 @@ def make_graphs(n, data, analysis_type, ranked):
                 create_pie_chart(df), \
                 create_box_plot(df), \
                 create_geo_location_plot(df)
-
+                create_spending_by_location(df, zipcode)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
