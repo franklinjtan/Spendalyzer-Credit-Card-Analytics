@@ -10,7 +10,8 @@ from geopandas import GeoDataFrame
 from funcs import clean_currency, create_forecast_recommendations_flagged, create_forecast_recommendations_all, \
     create_time_series, create_pie_chart, create_box_plot, create_geo_location_plot, \
     create_bar_chart_top_rankings, \
-    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis, create_line_plot, create_spending_by_location
+    create_bar_chart_bottom_rankings, create_bar_chart_days_analysis, create_line_plot, create_spending_by_location, \
+    create_heatmap
 import dash
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
@@ -121,9 +122,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart',
-                                              'Pie Chart', 'Box Plot',
-                                              'Geo-Location', 'Spending by Location']),
+                                     options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
                     ]
                 ),
 
@@ -149,8 +148,8 @@ def parse_contents(contents, filename, date):
                             id="zipcode",
                             className="dropdown",
                             style={
-                                'width': '60%',
-                                'height': '60%'}
+                                'width': '80%',
+                                'height': '25%'}
                         ),
                     ]
                 ),
@@ -221,6 +220,9 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
                 create_bar_chart_bottom_rankings(df, ranked), \
                 create_bar_chart_days_analysis(df)
 
+        elif analysis_type == 'Heat Map':
+            return create_heatmap(df)
+
         elif analysis_type == 'Pie Chart':
             return create_pie_chart(df)
 
@@ -234,17 +236,18 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
             return create_spending_by_location(df, zipcode)
 
         elif analysis_type == 'All':
-            return create_forecast_recommendations_all(df),\
+            return create_forecast_recommendations_all(df), \
                 create_forecast_recommendations_flagged(df), \
                 create_time_series(df), \
                 create_line_plot(df, ranked), \
                 create_bar_chart_top_rankings(df, ranked), \
                 create_bar_chart_bottom_rankings(df, ranked), \
+                create_heatmap(df),\
                 create_bar_chart_days_analysis(df), \
                 create_pie_chart(df), \
                 create_box_plot(df), \
                 create_geo_location_plot(df)
-                create_spending_by_location(df, zipcode)
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

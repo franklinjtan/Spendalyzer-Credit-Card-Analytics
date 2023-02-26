@@ -265,7 +265,7 @@ def create_bar_chart_bottom_rankings(df, ranked):
     bar_fig2 = px.bar(cat_vs_amount_df2, 'Category', 'Amount', color='Category',
                       title="What are your bottom " + str(ranked) + " rankings?",
                       color_discrete_sequence=['#004c6d', '#155b79', '#2b6a85', '#407992', '#55889e', '#6a97aa',
-                                               '#80a6b6','#95b4c2', '#aac3ce','#bfd2db'])
+                                               '#80a6b6', '#95b4c2', '#aac3ce', '#bfd2db'])
 
     return dcc.Graph(figure=bar_fig2)
 
@@ -284,6 +284,28 @@ def create_bar_chart_days_analysis(df):
 
     return dcc.Graph(figure=bar_fig3)
 
+
+def create_heatmap(df):
+    # Create a pivot table with categories as rows, months as columns and the sum of amounts as values
+    df_pivot = pd.pivot_table(df, values='Amount', index='Category', columns=df['Date'].dt.strftime('%Y-%m'),
+                              aggfunc=np.sum)
+
+    # Create a heatmap using Plotly
+    heatmap_fig = px.imshow(df_pivot.values,
+                            labels=dict(x="Month", y="Category", color="Amount"),
+                            x=df_pivot.columns,
+                            y=df_pivot.index,
+                            color_continuous_scale='Blues'
+                            )
+
+    heatmap_fig.update_layout(
+        title='Transactions by Category and Month',
+        xaxis_nticks=len(df_pivot.columns),
+        yaxis_nticks=len(df_pivot.index),
+        coloraxis=dict(colorbar=dict(title='Sum of Amounts'))
+    )
+
+    return dcc.Graph(figure=heatmap_fig)
 
 
 def create_pie_chart(df):
@@ -307,7 +329,7 @@ def create_box_plot(df):
     box_plot = px.box(df, x="Category", y='Amount', color="Category", points="suspectedoutliers",
                       color_discrete_sequence=['#004c6d', '#155b79', '#2b6a85', '#407992', '#55889e', '#6a97aa',
                                                '#80a6b6', '#95b4c2', '#aac3ce', '#bfd2db'],
-                      hover_name="Date", title='What outlier transactions can we detect?',)
+                      hover_name="Date", title='What outlier transactions can we detect?', )
     box_plot.update_traces(quartilemethod="exclusive")
     return dcc.Graph(figure=box_plot)
 
@@ -364,13 +386,15 @@ def create_geo_location_plot(df):
     )
     return dcc.Graph(figure=map_fig)
 
+
 def create_spending_by_location(df, zipcode):
     if len(zipcode) >= 5:
         df['PrimaryZip'] = np.where(df['Zip Code'] == zipcode, 'Primary Zip Code', 'Not Primary Zip Code')
         box_plot = px.box(df, x="PrimaryZip", y='Amount', color="PrimaryZip", points="suspectedoutliers",
-                        hover_name="Amount", title='What does spending look like outside our home address?',
-                        labels= "Primary Zip Code vs. Other Zip Code")
+                          color_discrete_sequence=['#004c6d'],
+                          hover_name="Amount", title='What does spending look like outside our home address?',
+                          labels="Primary Zip Code vs. Other Zip Code")
         box_plot.update_traces(quartilemethod="exclusive")
         return dcc.Graph(figure=box_plot)
     else:
-        return('Zipcode must be at least 5 characters long')
+        return 'Zipcode must be at least 5 characters long'
