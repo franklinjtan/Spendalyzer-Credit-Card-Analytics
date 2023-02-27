@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="index/index.css">
-    <title>Spendalyzer 🏦
+    <link rel="icon" type="image/png" href="/assets/favicon.ico">
+    <title>Analyze Your Expenses
     </title>
     <style>
         body {
@@ -14,15 +15,23 @@
 <div id="dollar-bill"></div>
 <body class="wrapper">
 <div class="card2">
-    <h1>Spendalyzer | Spending Analytics🏦</h1>
+    <h1>Spendalyzer | Spending Analytics</h1>
     <button class="app-btn" onclick="window.open('http://127.0.0.1:8050/', '_blank')">Open Application</button>
     <p>An interactive web application that allows users to analyze their
-        purchase history, understand their purchasing behavior, and receive recommendations based on scientific forecasts.</p>
+        purchase history, understand their purchasing behavior, and receive recommendations based on scientific
+        forecasts.</p>
 </div>
 <div class="card2">
     <h2>Why Your Personal Spending Analytics Is Important</h2>
     <h3>Crippling Debt</h3>
-    <p>In recent years, personal debt has become a growing problem in the United States. According to the Federal Reserve, the average American household has nearly $140,000 in debt, including medical bills, mortgages, credit cards, student loans, and auto loans. This level of debt can have serious consequences, both for individuals and for the economy as a whole. For individuals, high levels of debt can lead to financial stress, difficulty making ends meet, and even bankruptcy. It can also limit opportunities to save for the future, such as retirement. At the macro level, high levels of debt can lead to economic instability, as seen in the 2008 financial crisis. It's crucial for individuals to manage their debt carefully and be aware of the potential consequences of taking on too much debt.
+    <p>In recent years, personal debt has become a growing problem in the United States. According to the Federal
+        Reserve, the average American household has nearly $140,000 in debt, including medical bills, mortgages, credit
+        cards, student loans, and auto loans. This level of debt can have serious consequences, both for individuals and
+        for the economy as a whole. For individuals, high levels of debt can lead to financial stress, difficulty making
+        ends meet, and even bankruptcy. It can also limit opportunities to save for the future, such as retirement. At
+        the macro level, high levels of debt can lead to economic instability, as seen in the 2008 financial crisis.
+        It's crucial for individuals to manage their debt carefully and be aware of the potential consequences of taking
+        on too much debt.
     </p>
 
     <h3>Personal spending analytics is important for several reasons, including:</h3>
@@ -60,14 +69,32 @@
 
 <div class="card2">
     <h2>Use our Spendalyzer Application</h2>
-    <h3>Exponential Smoothing vs. Moving Average</h3>
-    <p> We use exponential smoothing and moving average forecasts! Both exponential smoothing and moving average are used in time series forecasting to identify patterns and trends
-        in data. However, they differ in how they weight historical data.
-        Moving average is a simple and effective method for smoothing out fluctuations in a time series. It is
-        calculated as the average of a fixed number of past data points, with the fixed number referred to as the
-        "window size". Moving average is useful for identifying trends and can help to remove random fluctuations in the
-        data. It is easy to use and understand, but it can lag behind the actual data and may not capture sudden changes
-        or sharp turning points.
+    <h3>Using Naive Bayes Text Classifier to Classify Necessities and Non-Necessities</h3>
+    <p> For the application, we used Naive Bayes text classifier to determine whether a
+        given expense is a necessity or not based on the description of the transaction. The classifier is trained on a
+        labeled dataset where each expense is categorized as a necessity or not. During training, the algorithm learns
+        the conditional probabilities of each word or feature given the class label (necessity or not). When a new
+        transaction is to be classified, the algorithm uses the Bayes theorem to calculate the probability of the
+        transaction belonging to each class based on the presence of each feature in the description. The class with the
+        highest probability is chosen as the predicted label. Naive Bayes is known for its simplicity, speed, and
+        relatively high accuracy.</p>
+    <h3>Researching Exponential Smoothing vs. Moving Average</h3>
+    <p> For the application, we use both exponential smoothing and moving average forecasts to identify patterns and
+        trends in the data. While both methods are useful for smoothing out fluctuations in a time series, they differ
+        in how they weight historical data. Moving average is a simple and effective method for identifying trends and
+        removing random fluctuations in the data. We use a fixed number of past data points, referred to as the "window
+        size," to calculate the moving average. <br><br>
+
+        However, moving average can lag behind the actual data and may not
+        capture sudden changes or sharp turning points. Despite its limitations, moving average is easy to use and
+        understand, making it a valuable tool for our application. Exponential smoothing, on the other hand, is a more
+        complex method that assigns exponentially decreasing weights
+        to past data points. This means that recent data points are given more weight than older data points, allowing
+        the model to adjust more quickly to sudden changes or sharp turning points. This can be especially useful for
+        our application in the current economic conditions where rising interest rates, inflation, and other economic
+        factors can lead to sudden changes in spending patterns. Exponential smoothing can help us capture these changes
+        more quickly and accurately, making it a better choice for our application in some cases.
+
     </p>
     <p>
         Exponential smoothing, on the other hand, is a more sophisticated method that gives more weight to recent data

@@ -89,10 +89,17 @@ def nb_classifier_prediction(df):
         header=dict(values=list(results_df.columns),
                     fill_color='#004c6d',
                     font_color='white',
-                    align='left'),
+                    align='left',
+                    font_size=15),
         cells=dict(values=[results_df.Description, results_df.Predicted_Necessity],
                    fill_color='#a7b8c6',
                    font_color='black',
-                   align='left'))
+                   align='left',
+                   font_size=15))
     ])
+
+    predictions_fig.update_layout(
+        title='Classifying Necessities Using Naive Bayes Text Classifier',
+        height=800,
+    )
     return dcc.Graph(figure=predictions_fig)
