@@ -20,6 +20,8 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 
+from nbfuncs import nb_classifier_prediction
+
 external_stylesheets = [
     {
         "href": "https://fonts.googleapis.com/css2?"
@@ -122,7 +124,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'SMA + ES Forecast', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
+                                     options=['All', 'SMA + ES Forecast', 'Naive Bayes Text Classifier - Necessities', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
                     ]
                 ),
 
@@ -211,6 +213,9 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
 
         if analysis_type == 'SMA + ES Forecast':
             return create_forecast_recommendations_all(df), create_forecast_recommendations_flagged(df)
+
+        elif analysis_type == 'Naive Bayes Text Classifier - Necessities':
+            return nb_classifier_prediction(df)
 
         elif analysis_type == 'Time Series':
             return create_time_series(df), create_line_plot(df, ranked)
