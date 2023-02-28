@@ -55,7 +55,7 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
             dcc.Upload(
                 id='upload-data',
                 children=html.Div([
-                    'Upload .csv file'
+                    'Upload .CSV'
                 ]),
                 style={
                     'width': '10%',
@@ -124,7 +124,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'SMA + ES Forecast', 'Naive Bayes Text Classifier - Necessities', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
+                                     options=['All', 'Recommendations', 'Naive Bayes Text Classifier - Necessities', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
                     ]
                 ),
 
@@ -211,8 +211,8 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
         df['Amount'] = df['Amount'].apply(clean_currency).astype('float')
         df['Date'] = pd.to_datetime(df['Date'])
 
-        if analysis_type == 'SMA + ES Forecast':
-            return create_forecast_recommendations_all(df), create_forecast_recommendations_flagged(df)
+        if analysis_type == 'Recommendations':
+            return create_forecast_recommendations_flagged(df)
 
         elif analysis_type == 'Naive Bayes Text Classifier - Necessities':
             return nb_classifier_prediction(df)
@@ -241,8 +241,7 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
             return create_spending_by_location(df, zipcode)
 
         elif analysis_type == 'All':
-            return create_forecast_recommendations_all(df), \
-                create_forecast_recommendations_flagged(df), \
+            return create_forecast_recommendations_flagged(df), \
                 create_time_series(df), \
                 create_line_plot(df, ranked), \
                 create_bar_chart_top_rankings(df, ranked), \

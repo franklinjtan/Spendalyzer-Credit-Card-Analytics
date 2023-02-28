@@ -191,12 +191,12 @@ def create_forecast_recommendations_flagged(df):
     message = ""
 
     for index, row in flagged_categories.iterrows():
-        message += "Flagged Category: {}<br>SMA and the ES forecasts are projected to surpass the average of ${}. SMA and ES Forecasts indicate an increase of {:.2f}% and {:.2f}%, respectively.<br><br>".format(
+        message += "<b>Flagged Category: {}</b><br>Monthly forecast projections indicate you will surpass your typical average of ${}.<br>Consider cost control strategies.<br>Source: SMA and ES Forecasts indicate an increase of {:.2f}% and {:.2f}%, respectively.<br><br>".format(
             row['Category'], row['Average'], row['pct_change_SMA'], row['pct_change_ES'])
 
     flagged_fig.update_layout(
         title='SMA and ES Forecasts',
-        height=800,
+        height=1200,
         annotations=[
             go.layout.Annotation(
                 x=0,
@@ -208,7 +208,7 @@ def create_forecast_recommendations_flagged(df):
                 yref="paper",
                 font=dict(
                     family="Arial",
-                    size=14,
+                    size=15,
                     color="black"
                 )
             )
