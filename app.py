@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from nbfuncs import nb_classifier_prediction
+from csv_3d_test import create_3D_scatter
 
 external_stylesheets = [
     {
@@ -104,7 +105,6 @@ def parse_contents(contents, filename, date):
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')))
-
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # Removes Unnamed columns
         elif 'xls' or 'xlsx' in filename:
             # Assume that the user uploaded an Excel file
@@ -124,7 +124,7 @@ def parse_contents(contents, filename, date):
                     children=[
                         html.Div(children="Type of Analysis Performed", className="menu-title"),
                         dcc.Dropdown(id='analysis-type',
-                                     options=['All', 'Recommendations', 'Naive Bayes Text Classifier - Necessities', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location']),
+                                     options=['All', 'Recommendations', 'Naive Bayes Text Classifier - Necessities', 'Time Series', 'Bar Chart', 'Heat Map', 'Pie Chart', 'Box Plot', 'Geo-Location', 'Spending by Location', '3-D Scatter']),
                     ]
                 ),
 
@@ -240,6 +240,9 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
         elif analysis_type == 'Spending by Location':
             return create_spending_by_location(df, zipcode)
 
+        elif analysis_type == '3-D Scatter':
+            return create_3D_scatter(df)
+
         elif analysis_type == 'All':
             return create_forecast_recommendations_flagged(df), \
                 create_time_series(df), \
@@ -250,7 +253,7 @@ def make_graphs(n, data, analysis_type, ranked, zipcode):
                 create_bar_chart_days_analysis(df), \
                 create_pie_chart(df), \
                 create_box_plot(df), \
-                create_geo_location_plot(df)
+                create_geo_location_plot(df), \
 
 
 if __name__ == '__main__':
