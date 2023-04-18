@@ -1,3 +1,19 @@
+.header-title {
+    color: #FFFFFF;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.header-description {
+    color: #FFFFFF;
+    font-size: 14px;
+    margin: 4px auto;
+    text-align: center;
+    max-width: 384px;
+}
+
 body {
     font-family: "Lato", sans-serif;
     margin: 0;
@@ -14,21 +30,6 @@ body {
     font-size: 48px;
     margin: 0 auto;
     text-align: center;
-}
-
-.header-title {
-    color: #FFFFFF;
-    font-size: 48px;
-    font-weight: bold;
-    text-align: center;
-    margin: 0 auto;
-}
-
-.header-description {
-    color: #CFCFCF;
-    margin: 4px auto;
-    text-align: center;
-    max-width: 384px;
 }
 
 .wrapper {

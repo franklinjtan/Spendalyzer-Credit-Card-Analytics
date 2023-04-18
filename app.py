@@ -74,7 +74,6 @@ app.layout = html.Div([  # this code section taken from Dash docs https://dash.p
                 # Allow multiple files to be uploaded
                 multiple=True
             ),
-            html.Div(id='output-data-upload'),
         ],
         className="upload",
     ),
