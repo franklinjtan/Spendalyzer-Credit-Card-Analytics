@@ -255,6 +255,7 @@ def parse_contents(contents, filename, date):
         ]
     )
 
+
 @app.callback(Output('output-datatable', 'children'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
