@@ -1,4 +1,4 @@
-# Spendalyzer - A Bank Statement Analytics Application
+# Spendalyzer - Credit Card Analytics Application
 * 2nd Place Winner at the Cornell SC Johnson Data Science Showcase on May 22, 2023
   
 ## Preview of Spendalyzer Recommendations (Backed by consumer behavior studies)
