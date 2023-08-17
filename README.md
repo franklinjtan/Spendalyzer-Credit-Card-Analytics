@@ -1,6 +1,12 @@
 # Spendalyzer - A Bank Statement Analytics Application
 * 2nd Place Winner at the Cornell SC Johnson Data Science Showcase on May 22, 2023
-
+  
+## Preview of Spendalyzer Recommendations (Backed by consumer behavior studies)
+**Suggested strategies to curb impulse purchases**
+1. Consider eating before shopping to avoid impulse purchases (studies have demonstrated that satiation through food consumption prior to shopping can help individuals adhere to their shopping lists and resist unplanned impulse purchases)
+2. Purchase your groceries online (studies show that shopping at online grocery platforms reduces the consumption of impulse purchases)
+3. Use physical cash in an envelope when shopping at a grocery store (studies have shown that the physical presence of cash and the increased pain of paying reduces impulsive purchases aka loss aversion)
+   
 ## About
 * Our motivation to address this problem stemmed from our research on the growing credit card debt in the United States and the lack of predictive and prescriptive analytics in budgeting and personal finance apps. While you may receive information on your spending and where it occurs, you typically don't receive real-time feedback on which categories to cut back on, personalized strategies to adopt, or an understanding of your strengths and weaknesses. We specifically focus our solution on low-income households who disproportionately take on more debt than other income segments.<br>
 * Our solution incorporates the OKR and KPI measurement framework to track spending data and establish a realistic budget. We utilize ML models like Naive Bayes to classify transactions as necessities or not, advanced forecasting methods to predict categories of overspending and prescribe strategies to take, gamification to encourage healthy spending habits, and a Chrome Extension that analyzes your recent purchase history and engages System 2 (deliberate thinking) to prevent impulse purchases.<br>
@@ -8,12 +14,6 @@
 ![Dashboard](/images/dashboard.jpeg)
 ![Spendalyzer](/images/Spendalyzer.png)
 ![Recommendations](/images/SMA-and-ES-Forecasting.png)
-
-## Preview of Spendalyzer Recommendations (Backed by consumer behavior studies)
-**Suggested strategies to curb impulse purchases**
-1. Consider eating before shopping to avoid impulse purchases (studies have demonstrated that satiation through food consumption prior to shopping can help individuals adhere to their shopping lists and resist unplanned impulse purchases)
-2. Purchase your groceries online (studies show that shopping at online grocery platforms reduces the consumption of impulse purchases)
-3. Use physical cash in an envelope when shopping at a grocery store (studies have shown that the physical presence of cash and the increased pain of paying reduces impulsive purchases aka loss aversion)  
 
 ## Researching Exponential Smoothing vs. Moving Average
 * For the application, we use both exponential smoothing and moving average forecasts to identify patterns and trends in the data. While both methods are useful for smoothing out fluctuations in a time series, they differ in how they weight historical data. Moving average is a simple and effective method for identifying trends and removing random fluctuations in the data. We use a fixed number of past data points, referred to as the "window size," to calculate the moving average.
